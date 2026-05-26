@@ -4,7 +4,7 @@
 
 ## Current State
 
-Foundation skeleton complete. Mic ring (5-state canvas renderer), audio meter, terminal row, settings and wizard activity stubs, and full design token system are scaffolded and building. Core feature work (audio capture, server transcription, dual-path commit) starting next.
+Core voice pipeline complete. Audio capture (16kHz PCM), WAV encoding, Whisper HTTP client (with auth and hallucination filtering), dual-path commit with local cache, pending recordings queue, voice presets (5 defaults), post-transcription substitutions, and encrypted config storage are all implemented and compiling. Next: wire into the IME service so the mic ring is tappable.
 
 ## What is LANboard
 
