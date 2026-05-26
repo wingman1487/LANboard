@@ -5,41 +5,86 @@
     SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
 -->
 
-<FrameLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/config_suggestions_strip_height">
-    <!-- To ensure that key preview popup is correctly placed when the current system locale is
-         one of RTL locales, layoutDirection="ltr" is needed in the SDK version 17+. -->
-    <helium314.keyboard.latin.suggestions.SuggestionStripView
-        android:id="@+id/suggestion_strip_view"
-        android:layoutDirection="ltr"
-        android:layout_width="match_parent"
+    android:layout_height="@dimen/lb_top_strip_height"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+
+    <!-- Existing strip area (suggestions / emoji / clipboard) -->
+    <FrameLayout
+        android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:gravity="center_vertical"
-        style="?attr/suggestionStripViewStyle" />
-    <LinearLayout
-        android:id="@+id/emoji_tab_strip"
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        style="?attr/suggestionStripViewStyle" />
-    <HorizontalScrollView
-        android:id="@+id/clipboard_strip_scroll_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        style="?attr/suggestionStripViewStyle"
-        android:scrollbarThumbHorizontal="@color/toolbar_scrollbar" >
-        <LinearLayout
-            android:id="@+id/clipboard_strip"
-            android:layout_width="wrap_content"
+        android:layout_weight="1">
+
+        <!-- To ensure that key preview popup is correctly placed when the current system locale is
+             one of RTL locales, layoutDirection="ltr" is needed in the SDK version 17+. -->
+        <helium314.keyboard.latin.suggestions.SuggestionStripView
+            android:id="@+id/suggestion_strip_view"
+            android:layoutDirection="ltr"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_gravity="end" >
-            <!-- empty view to move buttons to the right -->
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-        </LinearLayout>
-    </HorizontalScrollView>
-</FrameLayout>
+            android:gravity="center_vertical"
+            style="?attr/suggestionStripViewStyle" />
+
+        <!-- Audio meter replaces suggestions during voice listening -->
+        <helium314.keyboard.latin.lanboard.AudioMeterView
+            android:id="@+id/lb_audio_meter"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/emoji_tab_strip"
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            style="?attr/suggestionStripViewStyle" />
+
+        <HorizontalScrollView
+            android:id="@+id/clipboard_strip_scroll_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            style="?attr/suggestionStripViewStyle"
+            android:scrollbarThumbHorizontal="@color/toolbar_scrollbar" >
+            <LinearLayout
+                android:id="@+id/clipboard_strip"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="end" >
+                <!-- empty view to move buttons to the right -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+    </FrameLayout>
+
+    <!-- LANboard mic ring -->
+    <FrameLayout
+        android:id="@+id/lb_mic_ring_container"
+        android:layout_width="@dimen/lb_mic_ring_container_size"
+        android:layout_height="@dimen/lb_mic_ring_container_size"
+        android:gravity="center">
+
+        <helium314.keyboard.latin.lanboard.MicRingView
+            android:id="@+id/lb_mic_ring"
+            android:layout_width="@dimen/lb_mic_ring_size"
+            android:layout_height="@dimen/lb_mic_ring_size"
+            android:layout_gravity="center" />
+
+        <ImageView
+            android:id="@+id/lb_mic_icon"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_mic_none"
+            android:contentDescription="@string/lb_mic_button_description"
+            android:tint="@color/lb_text_secondary" />
+
+    </FrameLayout>
+
+</LinearLayout>

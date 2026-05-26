@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- LANboard design tokens — dark theme primary palette -->
+
+    <!-- Backgrounds -->
+    <color name="lb_bg_deepest">#FF0A0D10</color>
+    <color name="lb_bg_deep">#FF0F1318</color>
+    <color name="lb_bg_mid">#FF161B22</color>
+    <color name="lb_bg_elev">#FF1C232C</color>
+    <color name="lb_bg_elev_2">#FF232B35</color>
+
+    <!-- Borders -->
+    <color name="lb_border">#FF2A323C</color>
+    <color name="lb_border_bright">#FF3A4451</color>
+
+    <!-- Text hierarchy -->
+    <color name="lb_text_primary">#FFE6EDF3</color>
+    <color name="lb_text_secondary">#FF9BA8B4</color>
+    <color name="lb_text_tertiary">#FF6B7785</color>
+    <color name="lb_text_quiet">#FF4A5360</color>
+
+    <!-- Active accents -->
+    <color name="lb_cyan">#FF00D4FF</color>
+    <color name="lb_cyan_soft">#FF4DD9EE</color>
+    <color name="lb_electric_blue">#FF2B7FFF</color>
+    <color name="lb_deep_blue">#FF1851D4</color>
+    <color name="lb_green_pulse">#FF3DDC97</color>
+    <color name="lb_green_quiet">#FF2A8868</color>
+    <color name="lb_amber">#FFF0B429</color>
+    <color name="lb_red">#FFEF4444</color>
+    <color name="lb_red_dim">#FF7A2828</color>
+
+    <!-- Ring state colors (derived from tokens above) -->
+    <color name="lb_ring_idle_grey">#FF4A5360</color>
+    <color name="lb_ring_idle_green">#FF3DDC97</color>
+    <color name="lb_ring_listening_cyan">#FF00D4FF</color>
+    <color name="lb_ring_transcribing">#4000D4FF</color>
+    <color name="lb_ring_error">#80EF4444</color>
+
+    <!-- Meter bar color -->
+    <color name="lb_meter_cyan">#FF00D4FF</color>
+
+    <!-- Terminal row -->
+    <color name="lb_terminal_bg">#1A00D4FF</color>
+    <color name="lb_terminal_key_text">#FF4DD9EE</color>
+</resources>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HorizontalScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/lb_terminal_row_scroll"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/lb_terminal_row_height"
+    android:background="@color/lb_terminal_bg"
+    android:scrollbars="none"
+    android:visibility="gone">
+
+    <LinearLayout
+        android:id="@+id/lb_terminal_row"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp">
+
+        <TextView
+            android:id="@+id/lb_key_esc"
+            style="@style/LANboardTerminalKey"
+            android:text="Esc" />
+
+        <TextView
+            android:id="@+id/lb_key_tab"
+            style="@style/LANboardTerminalKey"
+            android:text="Tab" />
+
+        <TextView
+            android:id="@+id/lb_key_ctrl"
+            style="@style/LANboardTerminalKey"
+            android:text="Ctrl" />
+
+        <TextView
+            android:id="@+id/lb_key_alt"
+            style="@style/LANboardTerminalKey"
+            android:text="Alt" />
+
+        <TextView
+            android:id="@+id/lb_key_left"
+            style="@style/LANboardTerminalKey"
+            android:text="←" />
+
+        <TextView
+            android:id="@+id/lb_key_up"
+            style="@style/LANboardTerminalKey"
+            android:text="↑" />
+
+        <TextView
+            android:id="@+id/lb_key_down"
+            style="@style/LANboardTerminalKey"
+            android:text="↓" />
+
+        <TextView
+            android:id="@+id/lb_key_right"
+            style="@style/LANboardTerminalKey"
+            android:text="→" />
+
+        <TextView
+            android:id="@+id/lb_key_pgup"
+            style="@style/LANboardTerminalKey"
+            android:text="PgUp" />
+
+        <TextView
+            android:id="@+id/lb_key_pgdn"
+            style="@style/LANboardTerminalKey"
+            android:text="PgDn" />
+
+    </LinearLayout>
+</HorizontalScrollView>

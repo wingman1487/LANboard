@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mic ring -->
+    <string name="lb_mic_button_description">Voice input</string>
+    <string name="lb_server_unreachable">Server unreachable</string>
+    <string name="lb_no_speech_detected">No speech detected</string>
+    <string name="lb_transcribing">Transcribing…</string>
+    <string name="lb_listening">Listening</string>
+
+    <!-- Terminal row -->
+    <string name="lb_terminal_row_description">Terminal modifier keys</string>
+
+    <!-- Pending queue -->
+    <string name="lb_pending_banner_insert">Insert</string>
+    <string name="lb_pending_banner_copy">Copy</string>
+    <string name="lb_pending_banner_discard">Discard</string>
+
+    <!-- Settings -->
+    <string name="lb_settings_title">LANboard Settings</string>
+    <string name="lb_settings_server">Server</string>
+    <string name="lb_settings_server_url">Server URL</string>
+    <string name="lb_settings_server_url_hint">http://192.168.1.100:8000</string>
+    <string name="lb_settings_connection">Connection</string>
+    <string name="lb_settings_model">Model</string>
+    <string name="lb_settings_language">Language</string>
+    <string name="lb_settings_language_default">en</string>
+    <string name="lb_settings_auth">Authentication</string>
+    <string name="lb_settings_auth_none">None</string>
+    <string name="lb_settings_auth_bearer">Bearer token</string>
+    <string name="lb_settings_auth_basic">Basic auth</string>
+    <string name="lb_settings_test_connection">Test connection</string>
+    <string name="lb_settings_voice_accuracy">Voice accuracy</string>
+    <string name="lb_settings_active_preset">Active preset</string>
+    <string name="lb_settings_manage_presets">Manage presets</string>
+    <string name="lb_settings_substitutions">Substitutions</string>
+    <string name="lb_settings_keyboard">Keyboard</string>
+    <string name="lb_settings_terminal_default">Terminal row default</string>
+    <string name="lb_settings_sensitive_fields">Voice in sensitive fields</string>
+    <string name="lb_settings_heliboard_settings">HeliBoard settings</string>
+    <string name="lb_settings_storage">Storage</string>
+    <string name="lb_settings_pending_recordings">Pending recordings</string>
+    <string name="lb_settings_about">About</string>
+    <string name="lb_settings_credits">Credits &amp; licenses</string>
+    <string name="lb_settings_version">Version</string>
+
+    <!-- Sensitive field warning -->
+    <string name="lb_sensitive_field_title">Sensitive field</string>
+    <string name="lb_sensitive_field_message">This field appears to be a password or sensitive input. Use voice anyway?</string>
+    <string name="lb_sensitive_field_cancel">Cancel</string>
+    <string name="lb_sensitive_field_proceed">Use voice this time</string>
+
+    <!-- Auth error -->
+    <string name="lb_auth_failed">Authentication failed — check your token in settings</string>
+
+    <!-- First-run wizard -->
+    <string name="lb_wizard_welcome_title">Welcome to LANboard</string>
+    <string name="lb_wizard_welcome_subtitle">A keyboard with self-hosted voice transcription</string>
+    <string name="lb_wizard_no_server">I don\'t have a server yet</string>
+    <string name="lb_wizard_skip">I know what I\'m doing</string>
+    <string name="lb_wizard_mic_permission">Microphone permission</string>
+    <string name="lb_wizard_mic_skip">Skip — typing only</string>
+    <string name="lb_wizard_server_setup">Server setup</string>
+    <string name="lb_wizard_enable_ime">Enable LANboard</string>
+    <string name="lb_wizard_try_it">Try it out</string>
+    <string name="lb_wizard_try_it_hint">Tap the mic, say something, and watch it appear</string>
+    <string name="lb_wizard_ime_switch_hint">Switch back to your previous keyboard anytime by long-pressing the spacebar or using the globe key.</string>
+
+    <!-- Voice presets -->
+    <string name="lb_preset_coding">Coding</string>
+    <string name="lb_preset_email">Email</string>
+    <string name="lb_preset_personal">Personal</string>
+    <string name="lb_preset_terminal">Terminal</string>
+    <string name="lb_preset_general">General</string>
+
+    <!-- Credits -->
+    <string name="lb_credits_title">Credits &amp; Licenses</string>
+    <string name="lb_credits_heliboard">HeliBoard</string>
+    <string name="lb_credits_heliboard_desc">Privacy-conscious open-source Android keyboard by Helium314 and contributors</string>
+    <string name="lb_credits_openboard">OpenBoard</string>
+    <string name="lb_credits_openboard_desc">Open-source keyboard by the OpenBoard team</string>
+    <string name="lb_credits_aosp">AOSP Latin IME</string>
+    <string name="lb_credits_aosp_desc">Android Open Source Project keyboard</string>
+</resources>
