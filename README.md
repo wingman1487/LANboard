@@ -4,7 +4,7 @@
 
 ## Current State
 
-Project scaffolding complete. HeliBoard fork renamed to LANboard. Development environment set up. Starting foundation work.
+Foundation skeleton complete. Mic ring (5-state canvas renderer), audio meter, terminal row, settings and wizard activity stubs, and full design token system are scaffolded and building. Core feature work (audio capture, server transcription, dual-path commit) starting next.
 
 ## What is LANboard
 
