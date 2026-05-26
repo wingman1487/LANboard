@@ -81,72 +81,95 @@ internal fun PresetListScreen(navController: NavHostController) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Preset cards
-        presets.forEach { preset ->
-            val isActive = preset.name == activePresetName
-            val wordCount = preset.wordCount()
-            val wordColor = when {
-                wordCount > 200 -> LBColors.Red
-                wordCount > 150 -> LBColors.Amber
-                else -> LBColors.TextTertiary
-            }
-
+        if (presets.isEmpty()) {
+            Spacer(Modifier.height(48.dp))
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(LBColors.Surface)
-                    .clickable {
-                        navController.navigate("preset_edit/${preset.name}")
-                    }
-                    .padding(12.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Active marker dot
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(if (isActive) LBColors.Primary else LBColors.Border)
-                            .clickable {
-                                presetManager.setActivePreset(preset.name)
-                                refresh()
-                            }
-                    )
-                    Spacer(Modifier.width(10.dp))
-
-                    // Name
-                    Text(
-                        preset.name,
-                        color = LBColors.TextPrimary,
-                        fontSize = 15.sp,
-                        fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    // Word count
-                    Text(
-                        "${wordCount}/200 words",
-                        color = wordColor,
-                        fontSize = 12.sp
-                    )
+                Text(
+                    "No presets",
+                    color = LBColors.TextSecondary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Tap + to create a voice preset.\nPresets guide Whisper with a system prompt.",
+                    color = LBColors.TextQuiet,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+            }
+        } else {
+            // Preset cards
+            presets.forEach { preset ->
+                val isActive = preset.name == activePresetName
+                val wordCount = preset.wordCount()
+                val wordColor = when {
+                    wordCount > 200 -> LBColors.Red
+                    wordCount > 150 -> LBColors.Amber
+                    else -> LBColors.TextTertiary
                 }
 
-                // Preview
-                if (preset.promptText.isNotBlank()) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        preset.promptText,
-                        color = LBColors.TextQuiet,
-                        fontSize = 12.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 16.sp
-                    )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(LBColors.Surface)
+                        .clickable {
+                            navController.navigate("preset_edit/${preset.name}")
+                        }
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Active marker dot
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(if (isActive) LBColors.Primary else LBColors.Border)
+                                .clickable {
+                                    presetManager.setActivePreset(preset.name)
+                                    refresh()
+                                }
+                        )
+                        Spacer(Modifier.width(10.dp))
+
+                        // Name
+                        Text(
+                            preset.name,
+                            color = LBColors.TextPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        // Word count
+                        Text(
+                            "${wordCount}/200 words",
+                            color = wordColor,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    // Preview
+                    if (preset.promptText.isNotBlank()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            preset.promptText,
+                            color = LBColors.TextQuiet,
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 16.sp
+                        )
+                    }
                 }
             }
         }

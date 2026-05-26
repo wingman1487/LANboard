@@ -63,7 +63,11 @@ class LANboardBridge(private val ime: LatinIME) {
             }
 
             override fun onPendingTranscription(id: String, text: String) {
-                // TODO: show pending transcription banner
+                android.widget.Toast.makeText(
+                    ime,
+                    "Pending recording transcribed: ${text.take(40)}${if (text.length > 40) "…" else ""}",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
             }
         }
     }

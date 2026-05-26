@@ -46,7 +46,14 @@ class WhisperClient {
         "the end.", "so,", "i'm going to go ahead and do that.",
     )
 
-    suspend fun checkHealth(config: Config): Boolean = withContext(Dispatchers.IO) {
+    data class HealthResult(
+        val healthy: Boolean,
+        val detail: String? = null
+    )
+
+    suspend fun checkHealth(config: Config): Boolean = checkHealthDetailed(config).healthy
+
+    suspend fun checkHealthDetailed(config: Config): HealthResult = withContext(Dispatchers.IO) {
         try {
             val url = URL("${config.serverUrl.trimEnd('/')}/health")
             val conn = url.openConnection() as HttpURLConnection
@@ -57,10 +64,25 @@ class WhisperClient {
 
             val code = conn.responseCode
             conn.disconnect()
-            code == 200
+            if (code == 200) {
+                HealthResult(healthy = true)
+            } else if (code == 401) {
+                HealthResult(healthy = false, detail = "Authentication rejected (401)")
+            } else {
+                HealthResult(healthy = false, detail = "Server returned $code")
+            }
+        } catch (e: java.net.ConnectException) {
+            Log.d(TAG, "Health check failed: ${e.message}")
+            HealthResult(healthy = false, detail = "Connection refused — is the server running?")
+        } catch (e: java.net.SocketTimeoutException) {
+            Log.d(TAG, "Health check failed: ${e.message}")
+            HealthResult(healthy = false, detail = "Timed out — check URL and network")
+        } catch (e: java.net.UnknownHostException) {
+            Log.d(TAG, "Health check failed: ${e.message}")
+            HealthResult(healthy = false, detail = "Host not found — check the URL")
         } catch (e: Exception) {
             Log.d(TAG, "Health check failed: ${e.message}")
-            false
+            HealthResult(healthy = false, detail = e.message)
         }
     }
 

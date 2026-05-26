@@ -127,12 +127,26 @@ internal fun SubstitutionsScreen(navController: NavHostController) {
         }
 
         if (rules.isEmpty()) {
-            Text(
-                "No substitution rules yet. Tap + to add one.",
-                color = LBColors.TextQuiet,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
+            Spacer(Modifier.height(32.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "No substitution rules",
+                    color = LBColors.TextSecondary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Tap + to add a find-and-replace rule.\nFixes common Whisper transcription errors\nautomatically, e.g. \"true nas\" → \"TrueNAS\".",
+                    color = LBColors.TextQuiet,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+            }
         }
 
         Spacer(Modifier.height(16.dp))

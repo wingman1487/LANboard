@@ -450,14 +450,14 @@ private fun MainSettingsScreen(navController: NavHostController) {
                             authMode = authMode, authToken = authToken,
                             authUser = authUser, authPass = authPass
                         )
-                        val healthy = whisperClient.checkHealth(cfg)
+                        val result = whisperClient.checkHealthDetailed(cfg)
                         val elapsed = System.currentTimeMillis() - startMs
-                        testResult = if (healthy) {
+                        testResult = if (result.healthy) {
                             "Connected · ${model.ifBlank { "default" }} · ${elapsed}ms"
                         } else {
-                            "Connection failed"
+                            result.detail ?: "Connection failed"
                         }
-                        connectionHealthy = healthy
+                        connectionHealthy = result.healthy
                         testRunning = false
                     }
                 },
