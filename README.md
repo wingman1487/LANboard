@@ -4,7 +4,7 @@
 
 ## Current State
 
-All Stage 2 core features complete (M1-M11). Voice pipeline with dual-path audio, settings screen with server config and drill-down screens (presets, substitutions, pending queue, credits), first-run wizard with 5 steps, terminal row toggleable from toolbar tray, auth support (None/Bearer/Basic with encrypted credential storage). Next: app icon, polish, and QA pass.
+Stage 3 (polish) complete. All milestones M1-M12 implemented: voice pipeline, settings, wizard, terminal tray, auth support, and now the LANboard app icon (ring + mic design at all density buckets), empty/error/loading states across all screens, and detailed connection diagnostics. `develop` and `main` are in sync. Ready for Stage 4: testing and validation on real hardware.
 
 ## What is LANboard
 
