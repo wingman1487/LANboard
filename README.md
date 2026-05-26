@@ -4,7 +4,7 @@
 
 ## Current State
 
-Settings screen fully built with server config (URL, model dropdown, auth), voice accuracy (preset management, substitutions), keyboard options (terminal row toggle, sensitive field policy), storage (pending queue), and about/credits. First-run wizard with 5 steps: welcome, mic permission, server setup with test connection, IME enable with auto-detection, and live try-it-out field. All drill-down screens implemented: preset list/edit, substitution editor, pending queue, credits & licenses. Next: terminal row tray toggle (M9), then polish pass.
+All Stage 2 core features complete (M1-M11). Voice pipeline with dual-path audio, settings screen with server config and drill-down screens (presets, substitutions, pending queue, credits), first-run wizard with 5 steps, terminal row toggleable from toolbar tray, auth support (None/Bearer/Basic with encrypted credential storage). Next: app icon, polish, and QA pass.
 
 ## What is LANboard
 
