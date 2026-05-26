@@ -15,3 +15,11 @@ tools/*.txt
 *.patch
 *.diff
 *.sh
+
+# LANboard spec and design files (not shipped)
+project-spec.md
+lanboard-design.html
+lanboard-secondary-screens.html
+forge-config.json
+CLAUDE.md
+lanboard-spec-backup/
