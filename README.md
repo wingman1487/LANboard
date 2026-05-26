@@ -4,7 +4,7 @@
 
 ## Current State
 
-Voice pipeline wired into the IME service. Mic ring is tappable — tap to listen, tap to commit, long-press to discard. Audio drives both the ring spikes and the meter bars. Transcription results insert at cursor with substitution post-processing. Terminal row sends key events with sticky Ctrl/Alt. Settings activity and wizard are stubbed. Next: fill out the settings UI and first-run wizard.
+Settings screen fully built with server config (URL, model dropdown, auth), voice accuracy (preset management, substitutions), keyboard options (terminal row toggle, sensitive field policy), storage (pending queue), and about/credits. First-run wizard with 5 steps: welcome, mic permission, server setup with test connection, IME enable with auto-detection, and live try-it-out field. All drill-down screens implemented: preset list/edit, substitution editor, pending queue, credits & licenses. Next: terminal row tray toggle (M9), then polish pass.
 
 ## What is LANboard
 
