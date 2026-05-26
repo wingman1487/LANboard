@@ -86,6 +86,7 @@ import helium314.keyboard.latin.utils.SubtypeLocaleUtils;
 import helium314.keyboard.latin.utils.SubtypeSettings;
 import helium314.keyboard.latin.utils.SubtypeState;
 import helium314.keyboard.latin.utils.ToolbarMode;
+import helium314.keyboard.latin.lanboard.LANboardBridge;
 import helium314.keyboard.settings.SettingsActivity2;
 import kotlin.Unit;
 
@@ -140,6 +141,7 @@ public class LatinIME extends InputMethodService implements
     private SuggestionStripView mSuggestionStripView;
 
     private RichInputMethodManager mRichImm;
+    private LANboardBridge mLanboardBridge;
     final KeyboardSwitcher mKeyboardSwitcher;
     private final SubtypeState mSubtypeState = new SubtypeState((InputMethodSubtype subtype) -> { switchToSubtype(subtype); return Unit.INSTANCE; });
     private final StatsUtilsManager mStatsUtilsManager;
@@ -769,6 +771,11 @@ public class LatinIME extends InputMethodService implements
             mSuggestionStripView.setRtl(mRichImm.getCurrentSubtype().isRtlSubtype());
             mSuggestionStripView.setListener(this, view);
         }
+        // LANboard: wire voice input views
+        if (mLanboardBridge == null) {
+            mLanboardBridge = new LANboardBridge(this);
+        }
+        mLanboardBridge.onInputViewCreated(view);
     }
 
     @Override
@@ -994,6 +1001,11 @@ public class LatinIME extends InputMethodService implements
                 currentSettingsValues.mGestureFloatingPreviewTextEnabled);
 
         if (TRACE) Debug.startMethodTracing("/data/trace/latinime");
+
+        // LANboard: notify bridge of input view start (health check, pending retry, sensitive field detection)
+        if (mLanboardBridge != null) {
+            mLanboardBridge.onInputViewStarted(editorInfo);
+        }
     }
 
     @Override
@@ -1032,6 +1044,9 @@ public class LatinIME extends InputMethodService implements
     void onFinishInputViewInternal(final boolean finishingInput) {
         super.onFinishInputView(finishingInput);
         Log.i(TAG, "onFinishInputView");
+        if (mLanboardBridge != null) {
+            mLanboardBridge.onInputViewFinished();
+        }
         cleanupInternalStateForFinishInput();
     }
 
