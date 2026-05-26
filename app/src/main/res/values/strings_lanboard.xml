@@ -9,6 +9,7 @@
 
     <!-- Terminal row -->
     <string name="lb_terminal_row_description">Terminal modifier keys</string>
+    <string name="terminal">Terminal row</string>
 
     <!-- Pending queue -->
     <string name="lb_pending_banner_insert">Insert</string>

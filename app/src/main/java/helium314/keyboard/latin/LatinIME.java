@@ -1008,6 +1008,13 @@ public class LatinIME extends InputMethodService implements
         }
     }
 
+    // LANboard: terminal row toggle from toolbar tray
+    public void toggleTerminalRow() {
+        if (mLanboardBridge != null) {
+            mLanboardBridge.toggleTerminalRow();
+        }
+    }
+
     @Override
     public void onWindowShown() {
         super.onWindowShown();
