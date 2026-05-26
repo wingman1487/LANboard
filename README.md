@@ -4,7 +4,7 @@
 
 ## Current State
 
-Core voice pipeline complete. Audio capture (16kHz PCM), WAV encoding, Whisper HTTP client (with auth and hallucination filtering), dual-path commit with local cache, pending recordings queue, voice presets (5 defaults), post-transcription substitutions, and encrypted config storage are all implemented and compiling. Next: wire into the IME service so the mic ring is tappable.
+Voice pipeline wired into the IME service. Mic ring is tappable — tap to listen, tap to commit, long-press to discard. Audio drives both the ring spikes and the meter bars. Transcription results insert at cursor with substitution post-processing. Terminal row sends key events with sticky Ctrl/Alt. Settings activity and wizard are stubbed. Next: fill out the settings UI and first-run wizard.
 
 ## What is LANboard
 
