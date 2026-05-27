@@ -4,7 +4,7 @@
 
 ## Current State
 
-Stage 4 (testing & validation) in progress. All milestones M1-M12 validated on Pixel 10 Fold hardware. Device testing resolved: crash on startup (FrameLayout cast), cleartext HTTP for LAN servers, audio capture sensitivity, mic ring visualization tuning, terminal row double-row layout with modifier indicators, touchable region calculation, settings accessibility, and first-run wizard auto-launch. Voice transcription confirmed working end-to-end with faster-whisper-server.
+**v1 complete.** All milestones M1-M12 built, tested on Pixel 10 Fold hardware, and reviewed against the full project specification. See [BUILD_SUMMARY.md](BUILD_SUMMARY.md) for what was built and deferred, and [TESTING.md](TESTING.md) for the full testing guide.
 
 ## What is LANboard
 
