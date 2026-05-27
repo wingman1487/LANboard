@@ -4,7 +4,7 @@
 
 ## Current State
 
-Stage 3 (polish) complete. All milestones M1-M12 implemented: voice pipeline, settings, wizard, terminal tray, auth support, and now the LANboard app icon (ring + mic design at all density buckets), empty/error/loading states across all screens, and detailed connection diagnostics. `develop` and `main` are in sync. Ready for Stage 4: testing and validation on real hardware.
+Stage 4 (testing & validation) in progress. All milestones M1-M12 validated on Pixel 10 Fold hardware. Device testing resolved: crash on startup (FrameLayout cast), cleartext HTTP for LAN servers, audio capture sensitivity, mic ring visualization tuning, terminal row double-row layout with modifier indicators, touchable region calculation, settings accessibility, and first-run wizard auto-launch. Voice transcription confirmed working end-to-end with faster-whisper-server.
 
 ## What is LANboard
 
