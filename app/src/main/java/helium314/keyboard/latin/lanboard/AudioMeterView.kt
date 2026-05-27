@@ -36,8 +36,10 @@ class AudioMeterView @JvmOverloads constructor(
     }
 
     fun updateAudio(loudness: Float) {
+        // Amplify for visualization — raw RMS from mic is typically 0.01-0.15
+        val boosted = Math.min(1f, loudness * 35f)
         for (i in 0 until numBars) {
-            val target = loudness * (0.3f + Math.random().toFloat() * 0.7f)
+            val target = boosted * (0.3f + Math.random().toFloat() * 0.7f)
             val diff = target - bars[i]
             val rate = if (diff > 0) 0.6f else 0.18f
             bars[i] += diff * rate

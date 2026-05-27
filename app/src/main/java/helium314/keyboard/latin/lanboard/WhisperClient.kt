@@ -31,7 +31,14 @@ class WhisperClient {
         val authToken: String = "",
         val authUser: String = "",
         val authPass: String = ""
-    )
+    ) {
+        val normalizedUrl: String get() {
+            val trimmed = serverUrl.trim().trimEnd('/')
+            if (trimmed.isEmpty()) return ""
+            return if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) trimmed
+            else "http://$trimmed"
+        }
+    }
 
     data class TranscriptionResult(
         val text: String,
@@ -55,7 +62,7 @@ class WhisperClient {
 
     suspend fun checkHealthDetailed(config: Config): HealthResult = withContext(Dispatchers.IO) {
         try {
-            val url = URL("${config.serverUrl.trimEnd('/')}/health")
+            val url = URL("${config.normalizedUrl}/health")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.connectTimeout = HEALTH_TIMEOUT_MS
@@ -88,7 +95,7 @@ class WhisperClient {
 
     suspend fun fetchModels(config: Config): List<String> = withContext(Dispatchers.IO) {
         try {
-            val url = URL("${config.serverUrl.trimEnd('/')}/v1/models")
+            val url = URL("${config.normalizedUrl}/v1/models")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.connectTimeout = MODEL_TIMEOUT_MS
@@ -121,7 +128,7 @@ class WhisperClient {
         withContext(Dispatchers.IO) {
             try {
                 val boundary = "----LANboard${UUID.randomUUID()}"
-                val url = URL("${config.serverUrl.trimEnd('/')}/v1/audio/transcriptions")
+                val url = URL("${config.normalizedUrl}/v1/audio/transcriptions")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
                 conn.doOutput = true

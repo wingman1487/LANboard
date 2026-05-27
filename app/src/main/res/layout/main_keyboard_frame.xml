@@ -18,7 +18,6 @@
 
     <!-- LANboard: terminal modifier row (Esc, Tab, Ctrl, Alt, arrows, PgUp, PgDn) -->
     <include
-        android:id="@+id/lb_terminal_row_container"
         layout="@layout/lanboard_terminal_row" />
 
     <!-- To ensure that key preview popup is correctly placed when the current system locale is

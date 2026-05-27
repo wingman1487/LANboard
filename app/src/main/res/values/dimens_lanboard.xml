@@ -4,13 +4,13 @@
     <dimen name="lb_top_strip_height">44dp</dimen>
     <dimen name="lb_toolbar_button_size">36dp</dimen>
     <dimen name="lb_mic_ring_container_size">44dp</dimen>
-    <dimen name="lb_mic_ring_size">32dp</dimen>
+    <dimen name="lb_mic_ring_size">38dp</dimen>
 
     <!-- Terminal row -->
-    <dimen name="lb_terminal_row_height">32dp</dimen>
+    <dimen name="lb_terminal_row_height">42dp</dimen>
     <dimen name="lb_terminal_key_min_width">36dp</dimen>
     <dimen name="lb_terminal_key_padding">4dp</dimen>
-    <dimen name="lb_terminal_key_text_size">11sp</dimen>
+    <dimen name="lb_terminal_key_text_size">13sp</dimen>
 
     <!-- Audio meter -->
     <dimen name="lb_meter_bar_width">3dp</dimen>

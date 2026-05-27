@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -112,6 +113,7 @@ private object Routes {
 class LANboardSettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             MaterialTheme(colorScheme = lanboardDarkScheme) {
                 val navController = rememberNavController()
@@ -121,6 +123,7 @@ class LANboardSettingsActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxSize()
                         .background(LBColors.Background)
+                        .systemBarsPadding()
                 ) {
                     composable(Routes.MAIN) { MainSettingsScreen(navController) }
                     composable(Routes.PRESET_LIST) { PresetListScreen(navController) }
@@ -453,7 +456,7 @@ private fun MainSettingsScreen(navController: NavHostController) {
                         val result = whisperClient.checkHealthDetailed(cfg)
                         val elapsed = System.currentTimeMillis() - startMs
                         testResult = if (result.healthy) {
-                            "Connected · ${model.ifBlank { "default" }} · ${elapsed}ms"
+                            "Connected · ${elapsed}ms"
                         } else {
                             result.detail ?: "Connection failed"
                         }
@@ -504,19 +507,10 @@ private fun MainSettingsScreen(navController: NavHostController) {
 
         // ═══════════════════════ VOICE ACCURACY ═══════════════════════
         SettingsSection("Voice Accuracy") {
-            // Active preset
+            // Voice presets
             SettingsRow(
-                label = "Active preset",
+                label = "Voice presets",
                 value = activePresetName,
-                onClick = { navController.navigate(Routes.PRESET_LIST) }
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            // Manage presets
-            SettingsRow(
-                label = "Manage presets",
-                value = "",
                 onClick = { navController.navigate(Routes.PRESET_LIST) },
                 showChevron = true
             )

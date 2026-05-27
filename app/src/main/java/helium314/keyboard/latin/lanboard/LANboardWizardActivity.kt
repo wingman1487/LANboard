@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -99,6 +100,7 @@ class LANboardWizardActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             MaterialTheme(colorScheme = wizardDarkScheme) {
                 WizardScreen(
@@ -152,6 +154,7 @@ private fun WizardScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
+            .systemBarsPadding()
     ) {
         // Top bar with skip link and progress dots
         TopBar(
@@ -614,12 +617,9 @@ private fun StepServerSetup(onNext: () -> Unit) {
 
                         if (healthy) {
                             val models = whisperClient.fetchModels(whisperConfig)
-                            val modelName = models.firstOrNull() ?: "unknown"
-                            val modelList = if (models.isNotEmpty()) models.joinToString(", ") else "none"
                             testResult = TestConnectionResult(
                                 success = true,
-                                message = "Connected · $modelName · ${latency}ms\n" +
-                                        "Found ${models.size} model${if (models.size != 1) "s" else ""} loaded: $modelList"
+                                message = "Connected · ${latency}ms · ${models.size} model${if (models.size != 1) "s" else ""} available"
                             )
                             if (models.isNotEmpty() && config.model.isBlank()) {
                                 config.model = models.first()

@@ -22,6 +22,10 @@ class MicRingView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    init {
+        clipToOutline = false
+    }
+
     enum class State { IDLE_OK, IDLE_UNREACHABLE, IDLE_CHECKING, LISTENING, TRANSCRIBING }
 
     var state: State = State.IDLE_OK
@@ -37,7 +41,7 @@ class MicRingView @JvmOverloads constructor(
     private val spikes = FloatArray(numSamples)
     private var spinnerAngle = 0f
     private var breathT = (Math.random() * 3.4).toFloat()
-    private var maxSpikeFrac = 0.4f
+    private var maxSpikeFrac = 0.35f
 
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -68,7 +72,7 @@ class MicRingView @JvmOverloads constructor(
         super.onSizeChanged(w, h, oldw, oldh)
         cx = w / 2f
         cy = h / 2f
-        baseRadius = min(w, h) * 0.38f
+        baseRadius = min(w, h) * 0.35f
         lineWidth = min(w, h) * 0.04f
     }
 
@@ -87,11 +91,13 @@ class MicRingView @JvmOverloads constructor(
     }
 
     private fun spawnSpikes(loudness: Float) {
-        if (loudness < 0.08f) return
-        val numNew = floor(1 + loudness * 6 + Math.random().toFloat() * 3).toInt()
+        // Amplify for visualization — raw RMS from mic is typically 0.01-0.15
+        val boosted = min(1f, loudness * 50f)
+        if (boosted < 0.03f) return
+        val numNew = floor(1 + boosted * 6 + Math.random().toFloat() * 3).toInt()
         for (i in 0 until numNew) {
             val idx = (Math.random() * numSamples).toInt()
-            val amp = loudness * (0.6f + Math.random().toFloat() * 0.4f)
+            val amp = boosted * (0.6f + Math.random().toFloat() * 0.4f)
             spikes[idx] = max(spikes[idx], amp)
             val left = (idx - 1 + numSamples) % numSamples
             val right = (idx + 1) % numSamples
@@ -102,7 +108,7 @@ class MicRingView @JvmOverloads constructor(
 
     private fun decay() {
         for (i in 0 until numSamples) {
-            spikes[i] *= 0.88f
+            spikes[i] *= 0.75f
             if (spikes[i] < 0.01f) spikes[i] = 0f
         }
     }
@@ -124,16 +130,14 @@ class MicRingView @JvmOverloads constructor(
         breathT += 1f / 60f
         val breath = (sin(breathT * (2.0 * Math.PI / 3.4)).toFloat() + 1f) / 2f
 
-        val r = lerp(74f, 61f, breath * 0.7f).toInt()
-        val g = lerp(83f, 220f, breath * 0.7f).toInt()
-        val b = lerp(96f, 151f, breath * 0.7f).toInt()
-        val alpha = ((0.55f + breath * 0.3f) * 255).toInt()
+        val r = lerp(74f, 100f, breath).toInt()
+        val g = lerp(83f, 255f, breath).toInt()
+        val b = lerp(96f, 180f, breath).toInt()
+        val alpha = ((0.5f + breath * 0.5f) * 255).toInt()
 
         strokePaint.color = android.graphics.Color.argb(alpha, r, g, b)
         strokePaint.strokeWidth = lineWidth
-        strokePaint.setShadowLayer(breath * 8f * resources.displayMetrics.density, 0f, 0f, colorGreenPulse)
         canvas.drawCircle(cx, cy, baseRadius, strokePaint)
-        strokePaint.clearShadowLayer()
     }
 
     private fun drawError(canvas: Canvas) {
@@ -178,9 +182,7 @@ class MicRingView @JvmOverloads constructor(
         )
         spikePathPaint.shader = grad
         spikePathPaint.strokeWidth = lineWidth
-        spikePathPaint.setShadowLayer(10f * resources.displayMetrics.density, 0f, 0f, colorCyan)
         canvas.drawPath(spikePath, spikePathPaint)
-        spikePathPaint.clearShadowLayer()
         spikePathPaint.shader = null
     }
 
@@ -197,14 +199,12 @@ class MicRingView @JvmOverloads constructor(
         val startDeg = Math.toDegrees(spinnerAngle.toDouble()).toFloat()
         strokePaint.color = colorCyan
         strokePaint.strokeCap = Paint.Cap.ROUND
-        strokePaint.setShadowLayer(12f * resources.displayMetrics.density, 0f, 0f, colorCyan)
         canvas.drawArc(
             cx - baseRadius, cy - baseRadius,
             cx + baseRadius, cy + baseRadius,
             startDeg, arcLen, false, strokePaint
         )
         strokePaint.strokeCap = Paint.Cap.BUTT
-        strokePaint.clearShadowLayer()
     }
 
     private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t

@@ -28,13 +28,6 @@
             android:gravity="center_vertical"
             style="?attr/suggestionStripViewStyle" />
 
-        <!-- Audio meter replaces suggestions during voice listening -->
-        <helium314.keyboard.latin.lanboard.AudioMeterView
-            android:id="@+id/lb_audio_meter"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone" />
-
         <LinearLayout
             android:id="@+id/emoji_tab_strip"
             android:orientation="horizontal"
@@ -78,8 +71,8 @@
 
         <ImageView
             android:id="@+id/lb_mic_icon"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_mic_none"
             android:contentDescription="@string/lb_mic_button_description"

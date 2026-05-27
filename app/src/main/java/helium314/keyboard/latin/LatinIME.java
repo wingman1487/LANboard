@@ -776,6 +776,16 @@ public class LatinIME extends InputMethodService implements
             mLanboardBridge = new LANboardBridge(this);
         }
         mLanboardBridge.onInputViewCreated(view);
+
+        // LANboard: launch wizard on first run
+        helium314.keyboard.latin.lanboard.LANboardConfig lbConfig =
+                new helium314.keyboard.latin.lanboard.LANboardConfig(this);
+        if (!lbConfig.getWizardCompleted()) {
+            final Intent wizardIntent = new Intent(this,
+                    helium314.keyboard.latin.lanboard.LANboardWizardActivity.class);
+            wizardIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(wizardIntent);
+        }
     }
 
     @Override
@@ -1013,6 +1023,10 @@ public class LatinIME extends InputMethodService implements
         if (mLanboardBridge != null) {
             mLanboardBridge.toggleTerminalRow();
         }
+        if (mInputView != null) {
+            mInputView.requestLayout();
+            mInputView.post(this::updateInputViewShown);
+        }
     }
 
     @Override
@@ -1217,7 +1231,9 @@ public class LatinIME extends InputMethodService implements
             return;
         }
         final int stripHeight = mKeyboardSwitcher.isShowingStripContainer() ? mKeyboardSwitcher.getStripContainer().getHeight() : 0;
-        int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - stripHeight;
+        final View terminalRow = mInputView.findViewById(helium314.keyboard.latin.R.id.lb_terminal_row_scroll);
+        final int terminalRowHeight = (terminalRow != null && terminalRow.getVisibility() == View.VISIBLE) ? terminalRow.getHeight() : 0;
+        int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - stripHeight - terminalRowHeight;
         if (Settings.getValues().mIsFloatingKeyboard)
             visibleTopY = getResources().getDisplayMetrics().heightPixels;
 
@@ -1742,7 +1758,7 @@ public class LatinIME extends InputMethodService implements
             mainKeyboardView.closing();
         }
         final Intent intent = new Intent();
-        intent.setClass(LatinIME.this, SettingsActivity2.class);
+        intent.setClass(LatinIME.this, helium314.keyboard.latin.lanboard.LANboardSettingsActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);

@@ -1,31 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<HorizontalScrollView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/lb_terminal_row_scroll"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/lb_terminal_row_height"
+    android:layout_height="wrap_content"
     android:background="@color/lb_terminal_bg"
-    android:scrollbars="none"
+    android:orientation="vertical"
     android:visibility="gone">
 
+    <!-- Top row: modifiers and page keys -->
     <LinearLayout
-        android:id="@+id/lb_terminal_row"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="2dp"
-        android:paddingEnd="2dp">
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/lb_terminal_row_height"
+        android:orientation="horizontal">
 
         <TextView
             android:id="@+id/lb_key_esc"
             style="@style/LANboardTerminalKey"
             android:text="Esc" />
-
-        <TextView
-            android:id="@+id/lb_key_tab"
-            style="@style/LANboardTerminalKey"
-            android:text="Tab" />
 
         <TextView
             android:id="@+id/lb_key_ctrl"
@@ -36,6 +28,29 @@
             android:id="@+id/lb_key_alt"
             style="@style/LANboardTerminalKey"
             android:text="Alt" />
+
+        <TextView
+            android:id="@+id/lb_key_pgup"
+            style="@style/LANboardTerminalKey"
+            android:text="PgUp" />
+
+        <TextView
+            android:id="@+id/lb_key_pgdn"
+            style="@style/LANboardTerminalKey"
+            android:text="PgDn" />
+
+    </LinearLayout>
+
+    <!-- Bottom row: tab, arrows, slash -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/lb_terminal_row_height"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/lb_key_tab"
+            style="@style/LANboardTerminalKey"
+            android:text="Tab" />
 
         <TextView
             android:id="@+id/lb_key_left"
@@ -58,14 +73,10 @@
             android:text="→" />
 
         <TextView
-            android:id="@+id/lb_key_pgup"
+            android:id="@+id/lb_key_slash"
             style="@style/LANboardTerminalKey"
-            android:text="PgUp" />
-
-        <TextView
-            android:id="@+id/lb_key_pgdn"
-            style="@style/LANboardTerminalKey"
-            android:text="PgDn" />
+            android:text="/" />
 
     </LinearLayout>
-</HorizontalScrollView>
+
+</LinearLayout>

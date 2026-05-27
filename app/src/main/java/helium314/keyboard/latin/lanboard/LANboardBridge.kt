@@ -24,7 +24,6 @@ class LANboardBridge(private val ime: LatinIME) {
     private val voiceController = VoiceInputController(ime, scope)
 
     private var micRingView: MicRingView? = null
-    private var audioMeterView: AudioMeterView? = null
     private var micIcon: ImageView? = null
     private var micContainer: FrameLayout? = null
     private var terminalRowManager: TerminalRowManager? = null
@@ -50,7 +49,6 @@ class LANboardBridge(private val ime: LatinIME) {
 
             override fun onAudioFrame(rms: Float) {
                 micRingView?.updateAudio(rms)
-                audioMeterView?.updateAudio(rms)
             }
 
             override fun onTranscriptionResult(text: String) {
@@ -74,7 +72,6 @@ class LANboardBridge(private val ime: LatinIME) {
 
     fun onInputViewCreated(view: View) {
         micRingView = view.findViewById(R.id.lb_mic_ring)
-        audioMeterView = view.findViewById(R.id.lb_audio_meter)
         micIcon = view.findViewById(R.id.lb_mic_icon)
         micContainer = view.findViewById(R.id.lb_mic_ring_container)
         suggestionStripView = view.findViewById(R.id.suggestion_strip_view)
@@ -117,6 +114,17 @@ class LANboardBridge(private val ime: LatinIME) {
 
         voiceController.onInputViewStarted()
         updateRingForServerState()
+        startFrameRunner()
+        syncTerminalRow()
+    }
+
+    private fun syncTerminalRow() {
+        val shouldShow = config.terminalRowDefault
+        terminalRowManager?.let {
+            if (it.isVisible != shouldShow) {
+                it.isVisible = shouldShow
+            }
+        }
     }
 
     fun onInputViewFinished() {
@@ -135,7 +143,6 @@ class LANboardBridge(private val ime: LatinIME) {
                     MicRingView.State.IDLE_OK
                 else
                     MicRingView.State.IDLE_UNREACHABLE
-                audioMeterView?.visibility = View.GONE
                 suggestionStripView?.visibility = View.VISIBLE
                 micIcon?.setColorFilter(
                     ime.getColor(R.color.lb_text_secondary)
@@ -143,15 +150,12 @@ class LANboardBridge(private val ime: LatinIME) {
             }
             VoiceInputController.State.LISTENING -> {
                 micRingView?.state = MicRingView.State.LISTENING
-                suggestionStripView?.visibility = View.GONE
-                audioMeterView?.visibility = View.VISIBLE
                 micIcon?.setColorFilter(
                     ime.getColor(R.color.lb_cyan)
                 )
             }
             VoiceInputController.State.TRANSCRIBING -> {
                 micRingView?.state = MicRingView.State.TRANSCRIBING
-                audioMeterView?.visibility = View.GONE
                 suggestionStripView?.visibility = View.VISIBLE
                 micIcon?.setColorFilter(
                     ime.getColor(R.color.lb_cyan)

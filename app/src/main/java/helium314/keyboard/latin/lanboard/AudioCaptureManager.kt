@@ -20,7 +20,7 @@ class AudioCaptureManager(private val context: Context) {
         const val SAMPLE_RATE = 16000
         const val CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO
         const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT
-        private const val RMS_THRESHOLD = 0.010f
+        private const val RMS_THRESHOLD = 0.005f
         private const val FRAME_INTERVAL_MS = 33L // ~30fps
     }
 
@@ -35,6 +35,7 @@ class AudioCaptureManager(private val context: Context) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var frameListener: AudioFrameListener? = null
     private var currentRms = 0f
+    private var peakRms = 0f
 
     fun setFrameListener(listener: AudioFrameListener) {
         frameListener = listener
@@ -53,7 +54,7 @@ class AudioCaptureManager(private val context: Context) {
 
         try {
             audioRecord = AudioRecord(
-                MediaRecorder.AudioSource.MIC,
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
                 SAMPLE_RATE,
                 CHANNEL_CONFIG,
                 AUDIO_FORMAT,
@@ -71,6 +72,7 @@ class AudioCaptureManager(private val context: Context) {
 
         audioBuffer.reset()
         isRecording = true
+        peakRms = 0f
         audioRecord?.startRecording()
 
         recordingThread = Thread {
@@ -99,6 +101,7 @@ class AudioCaptureManager(private val context: Context) {
                             sumSquares += sample * sample
                         }
                         currentRms = sqrt(sumSquares / read).toFloat()
+                        if (currentRms > peakRms) peakRms = currentRms
                         mainHandler.post {
                             frameListener?.onAudioFrame(currentRms)
                         }
@@ -129,6 +132,7 @@ class AudioCaptureManager(private val context: Context) {
         }
 
         currentRms = 0f
+        peakRms = 0f
         return pcmData
     }
 
@@ -145,11 +149,12 @@ class AudioCaptureManager(private val context: Context) {
             audioBuffer.reset()
         }
         currentRms = 0f
+        peakRms = 0f
     }
 
     fun isCurrentlyRecording(): Boolean = isRecording
 
-    fun hasAudioAboveThreshold(): Boolean = currentRms >= RMS_THRESHOLD
+    fun hasAudioAboveThreshold(): Boolean = peakRms >= RMS_THRESHOLD
 
     fun release() {
         discardRecording()
