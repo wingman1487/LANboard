@@ -54,6 +54,12 @@ class LANboardBridge(private val ime: LatinIME) {
             override fun onTranscriptionResult(text: String) {
                 val processed = substitutionManager.applySubstitutions(text)
                 ime.currentInputConnection?.commitText(processed, 1)
+                // v2 §5.5 clipboard fallback: mirror the committed text to the clipboard so a
+                // dropped/truncated commit stays recoverable. Silent (the user sees the inserted
+                // text). Skipped for sensitive fields, which §5.3 keeps off every persistence surface.
+                if (config.copyTranscriptionsToClipboard && !voiceController.isSensitiveField) {
+                    LANboardClipboard.copy(ime, processed)
+                }
             }
 
             override fun onTranscriptionError(message: String) {

@@ -148,6 +148,31 @@ internal fun PendingQueueScreen(navController: NavHostController) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
+                        // Copy button — explicit clipboard recovery for a transcribed queue item
+                        // (§5.5: queue items are NOT auto-copied; they keep the explicit Copy button
+                        // with a confirmation toast).
+                        if (isTranscribed) {
+                            TextButton(
+                                onClick = {
+                                    recording.transcription?.let { text ->
+                                        LANboardClipboard.copy(context, text)
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "Copied to clipboard",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = LBColors.Primary
+                                )
+                            ) {
+                                Text("Copy", fontSize = 13.sp)
+                            }
+
+                            Spacer(Modifier.width(8.dp))
+                        }
+
                         TextButton(
                             onClick = {
                                 pendingManager.deletePending(recording.id)

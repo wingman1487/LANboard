@@ -20,6 +20,7 @@ class LANboardConfig(context: Context) {
         private const val KEY_LANGUAGE = "language"
         private const val KEY_AUTH_MODE = "auth_mode"
         private const val KEY_TERMINAL_DEFAULT = "terminal_row_default"
+        private const val KEY_COPY_TO_CLIPBOARD = "copy_to_clipboard"
         private const val KEY_SENSITIVE_FIELD_POLICY = "sensitive_field_policy"
         private const val KEY_WIZARD_COMPLETED = "wizard_completed"
 
@@ -63,6 +64,11 @@ class LANboardConfig(context: Context) {
     var terminalRowDefault: Boolean
         get() = prefs.getBoolean(KEY_TERMINAL_DEFAULT, false)
         set(value) = prefs.edit().putBoolean(KEY_TERMINAL_DEFAULT, value).apply()
+
+    // v2 §5.5 clipboard fallback: live commits are also copied to the clipboard. Default ON.
+    var copyTranscriptionsToClipboard: Boolean
+        get() = prefs.getBoolean(KEY_COPY_TO_CLIPBOARD, true)
+        set(value) = prefs.edit().putBoolean(KEY_COPY_TO_CLIPBOARD, value).apply()
 
     var sensitiveFieldPolicy: SensitiveFieldPolicy
         get() = try {
