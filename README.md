@@ -4,7 +4,7 @@
 
 ## Current State
 
-**v1 complete; v2.3 build underway.** v1 milestones M1-M12 shipped to `main` (tested on Pixel 10 Fold). The v2.3 design is locked (8 features Q1-Q8: glassy-dark theme, Pixel-Fold split keyboard, per-app presets, quick preset picker, HeliBoard settings reskin, plus clipboard/media/health-feedback refinements) and in active build on `develop`. **Stage 0 done:** Q7 clipboard fallback and Q8 pause-media-during-recording are merged. Next up: the glass theme + design-token foundation. See [BUILD_SUMMARY.md](BUILD_SUMMARY.md) and [TESTING.md](TESTING.md).
+**v1 complete; v2.3 build underway.** v1 milestones M1-M12 shipped to `main` (tested on Pixel 10 Fold). The v2.3 design is locked (8 features Q1-Q8: glassy-dark theme, Pixel-Fold split keyboard, per-app presets, quick preset picker, HeliBoard settings reskin, plus clipboard/media/health-feedback refinements) and in active build on `develop`. **Stage 0 done:** Q7 clipboard fallback and Q8 pause-media-during-recording are merged. **Stage 1 in progress:** the Q2 per-preset color data model + `LBPresetPalette` is merged to `develop`; the Q6 glass keyboard theme is built against the authoritative design render (`Q6-glass-keyboard.html`) on the `theme/glass-key-render` branch, pending on-device visual verification before merge. See [BUILD_SUMMARY.md](BUILD_SUMMARY.md) and [TESTING.md](TESTING.md).
 
 ## What is LANboard
 
