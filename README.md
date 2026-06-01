@@ -4,7 +4,7 @@
 
 ## Current State
 
-**v1 complete.** All milestones M1-M12 built, tested on Pixel 10 Fold hardware, and reviewed against the full project specification. See [BUILD_SUMMARY.md](BUILD_SUMMARY.md) for what was built and deferred, and [TESTING.md](TESTING.md) for the full testing guide.
+**v1 complete; v2.3 build underway.** v1 milestones M1-M12 shipped to `main` (tested on Pixel 10 Fold). The v2.3 design is locked (8 features Q1-Q8: glassy-dark theme, Pixel-Fold split keyboard, per-app presets, quick preset picker, HeliBoard settings reskin, plus clipboard/media/health-feedback refinements) and in active build on `develop`. **Stage 0 done:** Q7 clipboard fallback and Q8 pause-media-during-recording are merged. Next up: the glass theme + design-token foundation. See [BUILD_SUMMARY.md](BUILD_SUMMARY.md) and [TESTING.md](TESTING.md).
 
 ## What is LANboard
 
