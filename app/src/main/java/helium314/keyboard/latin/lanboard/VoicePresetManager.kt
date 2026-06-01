@@ -17,10 +17,16 @@ class VoicePresetManager(context: Context) {
     data class Preset(
         val name: String,
         val promptText: String,
-        val isDefault: Boolean = false
+        val isDefault: Boolean = false,
+        /** per-preset color as an ARGB hex string (§6.2/§8.1, Q2). Drives the mic-icon tint and the
+         *  listening spike-tip color. Defaults to General cyan; curated from [LBPresetPalette]. */
+        val colorHex: String = LBPresetPalette.GENERAL_CYAN_HEX
     ) {
         fun wordCount(): Int = promptText.trim().split(Regex("\\s+")).size
         fun isOverLimit(): Boolean = wordCount() > SOFT_LIMIT_WORDS
+
+        /** the resolved ARGB int for [colorHex], falling back to General cyan if it is malformed. */
+        fun colorInt(): Int = LBPresetPalette.parseOrDefault(colorHex)
     }
 
     private val prefs: SharedPreferences =
@@ -39,32 +45,37 @@ class VoicePresetManager(context: Context) {
                 "Programming, software development, Python, Kotlin, TypeScript, JavaScript, " +
                     "React, Docker, Kubernetes, Git, GitHub, API, REST, JSON, SQL, PostgreSQL, " +
                     "refactor, deploy, merge, commit, pull request, code review",
-                isDefault = true
+                isDefault = true,
+                colorHex = LBPresetPalette.CODING_HEX
             ),
             Preset(
                 "Email",
                 "Professional email correspondence. Formal tone, complete sentences, " +
                     "proper punctuation. Dear, Regards, Best wishes, Please find attached, " +
                     "I hope this email finds you well, Looking forward to hearing from you",
-                isDefault = true
+                isDefault = true,
+                colorHex = LBPresetPalette.EMAIL_HEX
             ),
             Preset(
                 "Personal",
                 "Casual messaging, text messages, chat. Contractions okay, informal tone. " +
                     "Hey, what's up, gonna, wanna, yeah, nah, cool, awesome, lol",
-                isDefault = true
+                isDefault = true,
+                colorHex = LBPresetPalette.PERSONAL_HEX
             ),
             Preset(
                 "Terminal",
                 "Shell commands, terminal, bash, zsh, ssh, git, docker, kubectl, systemctl, " +
                     "sudo, apt, pip, npm, yarn, cargo, grep, sed, awk, curl, wget, " +
                     "chmod, chown, ls, cd, mkdir, rm, cp, mv, cat, less, tail, head",
-                isDefault = true
+                isDefault = true,
+                colorHex = LBPresetPalette.TERMINAL_HEX
             ),
             Preset(
                 "General",
                 "",
-                isDefault = true
+                isDefault = true,
+                colorHex = LBPresetPalette.GENERAL_HEX
             )
         )
         savePresets(defaults)
@@ -77,10 +88,14 @@ class VoicePresetManager(context: Context) {
             val array = JSONArray(json)
             (0 until array.length()).map { i ->
                 val obj = array.getJSONObject(i)
+                val name = obj.getString("name")
                 Preset(
-                    name = obj.getString("name"),
+                    name = name,
                     promptText = obj.optString("promptText", ""),
-                    isDefault = obj.optBoolean("isDefault", false)
+                    isDefault = obj.optBoolean("isDefault", false),
+                    // back-compat: presets stored before colors existed have no "colorHex" key —
+                    // fall back to the locked default for that name (or General cyan for others)
+                    colorHex = obj.optString("colorHex", LBPresetPalette.defaultHexForName(name))
                 )
             }
         } catch (e: Exception) {
@@ -95,6 +110,7 @@ class VoicePresetManager(context: Context) {
                 put("name", preset.name)
                 put("promptText", preset.promptText)
                 put("isDefault", preset.isDefault)
+                put("colorHex", preset.colorHex)
             })
         }
         prefs.edit().putString(KEY_PRESETS, array.toString()).apply()
