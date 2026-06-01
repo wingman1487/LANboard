@@ -19,55 +19,58 @@ import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 /**
  * LANboard faux-glass key renderer (§6.7).
  *
- * Paints each key as a static raised pane of glass — a convex vertical gradient face, a specular
- * cap across the top third, a bright top edge, a dark bottom "thickness" edge, and a soft lift
- * shadow — built entirely from static drawing so the grid repaints only on press (no ambient or
- * looping sheen, which §13.2 bans). The single exception is a one-shot diagonal press glint on
- * key-down that runs ~[GLINT_MS] ms and then stops.
+ * Faithfully reproduces the approved authoritative visual reference `Q6-glass-keyboard.html`.
+ * Each key is a static raised pane of glass — a convex vertical face gradient, a domed specular
+ * cap across the top, a bright inner top edge, a dark inner bottom shade + thickness edge (the
+ * side-wall), and a soft outer lift shadow. The depth comes from layering all of these; the grid
+ * is entirely static and repaints only on press. The one animated element is a one-shot diagonal
+ * press glint on key-down (~[GLINT_MS] ms), then gone — no ambient/looping sheen (§13.2).
  *
- * Character keys read as neutral glass; command/modifier keys read as cyan glass; the spacebar
- * uses a flattened sheen (a wide convex cap bulges and looks tube-like); the globe is a muted
- * utility tile. Exact colors are the §6.1 design tokens.
+ * Color logic (§6.7): neutral glass = character keys (letters, '.', space); cyan glass =
+ * command/modifier keys (shift, backspace, ?123, enter); the globe is a neutral glass face whose
+ * icon the engine tints muted. The spacebar uses a flattened wide-key sheen (a convex cap stretched
+ * across a wide key bulges into a tube look).
  *
- * This renderer is the consumer of the LANboard Dark colorset, not a fork of the theme engine:
- * it only runs when [helium314.keyboard.latin.common.Colors.glassKeys] is true (set solely by the
- * authored LANboard Dark theme); every other theme renders through the engine's flat drawables.
+ * Runs only when [helium314.keyboard.latin.common.Colors.glassKeys] is true (the authored LANboard
+ * Dark colorset); every other theme renders through the engine's flat drawables. One instance per
+ * [KeyboardView], so the glint timestamps and the Paint/Shader cache are scoped to that view.
  *
- * One instance is owned per [KeyboardView], so the per-key glint timestamps and the Paint/Shader
- * cache are scoped to that view and torn down with it.
+ * Values mirror the CSS in Q6-glass-keyboard.html (authored on a 46px-tall key), noted inline.
  */
-class GlassKeyRenderer(density: Float) {
+class GlassKeyRenderer(private val density: Float) {
 
-    private enum class Face { NEUTRAL, CYAN, SPACEBAR, GLOBE }
+    private enum class Face { NEUTRAL, CYAN }
 
-    // Density-scaled geometry (computed once per view).
-    private val inset = 1.5f * density           // gap so panes read as separate tiles
-    private val cornerRadius = 9f * density       // matches the Rounded style's rounded corners
-    private val edgeThickness = 1.5f * density
-    private val bottomEdgeThickness = 2f * density
-    private val shadowRadius = 6f * density
-    private val shadowDy = 3f * density
-    private val pressShift = 1f * density          // depress translate-down
+    private fun dp(v: Float) = v * density
 
-    /** start time (uptimeMillis) of the active press glint per key; absent once the sweep ends */
+    // fixed geometry (dp); cap height / inner-shade depth scale with key height (CSS uses %)
+    private val inset = dp(2.5f)           // gap between panes (CSS row gap ~5px)
+    private val radius = dp(9f)            // .gk border-radius: 9px
+    private val topEdge = dp(1.5f)         // inner top highlight (border-top + inset 0 1px 0)
+    private val bottomEdge = dp(2f)        // .gk border-bottom: 2px solid rgba(0,0,0,.5)
+    private val sideEdge = dp(1f)          // .gk border 1px rgba(255,255,255,.10)
+    private val liftRadius = dp(6f)        // box-shadow 0 3px 6px
+    private val liftDy = dp(3f)
+    private val pressShift = dp(2f)        // .pressed transform: translateY(2px)
+
     private val glintStart = HashMap<Key, Long>()
 
-    /** cache of face+cap Paints keyed by size+face; shaders live in 0..h local coords reused per key */
     private val cache = object : LinkedHashMap<Long, Glass>(16, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, Glass>?) = size > 96
     }
 
-    private class Glass(val face: Paint, val cap: Paint, val capRect: RectF)
+    /** all cached, coordinate-bound paint layers for one (size, face); reused across like keys */
+    private class Glass(
+        val face: Paint, val cap: Paint, val capPath: Path,
+        val bottomShade: Paint, val bottomRect: RectF, val rect: RectF,
+    )
 
     private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val pressPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val glintPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val clipPath = Path()
+    private val glintPath = Path()
 
-    /**
-     * Draw the glass background for [key] into [canvas], which onDrawKeyBackground has already
-     * translated to the key's draw origin. [view] is used only to schedule the bounded glint frames.
-     */
     fun drawKeyBackground(canvas: Canvas, view: KeyboardView, key: Key, width: Int, height: Int) {
         if (width <= 0 || height <= 0) return
         val face = faceOf(key)
@@ -76,130 +79,153 @@ class GlassKeyRenderer(density: Float) {
         canvas.save()
         if (pressed) canvas.translate(0f, pressShift)
 
-        val rect = RectF(inset, inset, width - inset, height - inset)
-        val glass = cache.getOrPut(cacheKey(width, height, face)) { buildGlass(rect, face) }
+        val g = cache.getOrPut(cacheKey(width, height, face)) { buildGlass(width, height, face) }
+        val rect = g.rect
 
-        // 1. lift shadow + 2. convex face
-        glass.face.clearShadowLayer()
-        if (!pressed) glass.face.setShadowLayer(shadowRadius, 0f, shadowDy, SHADOW)
-        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, glass.face)
+        // 1. outer lift shadow + 2. convex face fill (skip the heavy lift while depressed)
+        g.face.clearShadowLayer()
+        if (!pressed) g.face.setShadowLayer(liftRadius, 0f, liftDy, LIFT)
+        canvas.drawRoundRect(rect, radius, radius, g.face)
 
-        // clip to the rounded face for the cap / edges / glint so nothing bleeds past the corners
+        // everything else is clipped to the rounded face
         clipPath.reset()
-        clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
+        clipPath.addRoundRect(rect, radius, radius, Path.Direction.CW)
         canvas.save()
         canvas.clipPath(clipPath)
 
-        // 3. specular cap across the top third (flattened for the spacebar)
-        canvas.drawRect(glass.capRect, glass.cap)
-
-        // 4. bright top edge + 5. dark bottom thickness edge
-        edgePaint.style = Paint.Style.FILL
-        edgePaint.color = topEdgeColor(face)
-        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + edgeThickness, edgePaint)
+        // 3. inner bottom shade — the convex "side-wall" darkening (inset 0 -Npx ...)
+        canvas.drawRect(g.bottomRect, g.bottomShade)
+        // 4. domed specular cap across the top (::before)
+        canvas.drawPath(g.capPath, g.cap)
+        // 5. inner top highlight edge + side edges + bottom thickness edge
+        edgePaint.color = if (face == Face.CYAN) TOP_EDGE_CY else TOP_EDGE
+        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + topEdge, edgePaint)
+        edgePaint.color = SIDE_EDGE
+        canvas.drawRect(rect.left, rect.top, rect.left + sideEdge, rect.bottom, edgePaint)
+        canvas.drawRect(rect.right - sideEdge, rect.top, rect.right, rect.bottom, edgePaint)
         edgePaint.color = BOTTOM_EDGE
-        canvas.drawRect(rect.left, rect.bottom - bottomEdgeThickness, rect.right, rect.bottom, edgePaint)
+        canvas.drawRect(rect.left, rect.bottom - bottomEdge, rect.right, rect.bottom, edgePaint)
 
-        // 6. pressed brightness pop
+        // 6. pressed brightness pop (filter: brightness(1.15))
         if (pressed) {
             pressPaint.color = PRESS_POP
             canvas.drawRect(rect, pressPaint)
         }
 
-        // 7. one-shot press glint
+        // 7. one-shot skewed press glint
         drawGlint(canvas, view, key, rect, pressed)
 
         canvas.restore() // clip
         canvas.restore() // press translate
     }
 
+    /** skewed white band sweeping left→right once over [GLINT_MS] (.gk::after + @keyframes glint) */
     private fun drawGlint(canvas: Canvas, view: KeyboardView, key: Key, rect: RectF, pressed: Boolean) {
         val now = SystemClock.uptimeMillis()
-        // arm on a fresh key-down; keep the entry until the sweep expires so it doesn't refire while held
         if (pressed && key !in glintStart) glintStart[key] = now
         val start = glintStart[key] ?: return
         val elapsed = now - start
-        if (elapsed >= GLINT_MS) {
-            glintStart.remove(key)
-            return
-        }
-        val progress = elapsed / GLINT_MS.toFloat()
+        if (elapsed >= GLINT_MS) { glintStart.remove(key); return }
+
+        val p = elapsed / GLINT_MS.toFloat()
         val w = rect.width()
-        val band = w * 0.5f
-        // sweep a translucent white diagonal band left -> right across the key
-        val cx = rect.left - band + progress * (w + band)
+        val bandW = w * 0.55f                       // ::after width:55%
+        val left = rect.left + (-0.60f + p * 1.95f) * w   // left travels -60% -> 135%
+        val skew = w * 0.18f                          // skewX(-18deg) ≈ horizontal shear
+        glintPath.reset()
+        glintPath.moveTo(left + skew, rect.top)
+        glintPath.lineTo(left + skew + bandW, rect.top)
+        glintPath.lineTo(left + bandW, rect.bottom)
+        glintPath.lineTo(left, rect.bottom)
+        glintPath.close()
         glintPaint.shader = LinearGradient(
-            cx - band, rect.top, cx + band, rect.bottom,
+            left, 0f, left + bandW, 0f,
             intArrayOf(Color.TRANSPARENT, GLINT, Color.TRANSPARENT),
             floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP
         )
-        canvas.drawRect(rect, glintPaint)
+        canvas.drawPath(glintPath, glintPaint)
         glintPaint.shader = null
-        // schedule the next frame; bounded because elapsed grows past GLINT_MS above
         view.postOnAnimation { view.invalidateKey(key) }
     }
 
-    private fun buildGlass(rect: RectF, face: Face): Glass {
-        val (top, mid, bottom) = when (face) {
-            Face.CYAN -> Triple(0xff1d4150.toInt(), 0xff143039.toInt(), 0xff101a21.toInt())
-            else -> Triple(0xff39434f.toInt(), 0xff232b34.toInt(), 0xff161c23.toInt())
-        }
+    private fun buildGlass(width: Int, height: Int, face: Face): Glass {
+        val w = width.toFloat(); val h = height.toFloat()
+        val rect = RectF(inset, inset, w - inset, h - inset)
+        val rh = rect.height(); val rw = rect.width()
+        val isCyan = face == Face.CYAN
+
+        // convex face: linear-gradient(180deg, top, mid 46%, bottom)
+        val face0: Int; val face1: Int; val face2: Int
+        if (isCyan) { face0 = 0xff1d4150.toInt(); face1 = 0xff143039.toInt(); face2 = 0xff101a21.toInt() }
+        else        { face0 = 0xff39434f.toInt(); face1 = 0xff232b34.toInt(); face2 = 0xff161c23.toInt() }
         val facePaint = Paint(Paint.ANTI_ALIAS_FLAG)
         facePaint.shader = LinearGradient(
             0f, rect.top, 0f, rect.bottom,
-            intArrayOf(top, mid, bottom), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP
+            intArrayOf(face0, face1, face2), floatArrayOf(0f, 0.46f, 1f), Shader.TileMode.CLAMP
         )
 
-        // specular cap: brighter at the very top, fading to transparent. The spacebar uses a
-        // shorter, near-uniform highlight so a wide convex cap doesn't bulge into a tube look.
-        val capHeightFraction = if (face == Face.SPACEBAR) 0.22f else 0.34f
-        val capBottom = rect.top + rect.height() * capHeightFraction
-        val capRect = RectF(rect.left, rect.top, rect.right, capBottom)
-        val capTopColor = when (face) {
-            Face.CYAN -> argb(0.28f, 180, 238, 255)
-            Face.GLOBE -> argb(0.12f, 255, 255, 255)
+        // inner bottom shade: inset 0 -5px 9px rgba(0,0,0,0.4) → dark gradient over the bottom band
+        val shadeTop = rect.bottom - rh * 0.32f
+        val bottomRect = RectF(rect.left, shadeTop, rect.right, rect.bottom)
+        val bottomShade = Paint(Paint.ANTI_ALIAS_FLAG)
+        bottomShade.shader = LinearGradient(
+            0f, shadeTop, 0f, rect.bottom,
+            intArrayOf(Color.TRANSPARENT, argb(0.40f, 0, 0, 0)), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP
+        )
+
+        // domed specular cap (::before): inset from sides, height ~42% (34% flatter for spacebar),
+        // rounded-bottom dome; white→transparent (cyan-white for cyan faces)
+        val wide = isWide(width, height)
+        val capInsetX = if (wide) rw * 0.02f else rw * 0.07f
+        val capH = if (wide) rh * 0.34f else rh * 0.42f
+        val capRect = RectF(rect.left + capInsetX, rect.top + topEdge, rect.right - capInsetX, rect.top + topEdge + capH)
+        val topR = dp(8f)
+        val botR = if (wide) dp(7f) else capRect.height() * 0.6f // large bottom radius = dome
+        val capPath = Path()
+        capPath.addRoundRect(
+            capRect,
+            floatArrayOf(topR, topR, topR, topR, botR, botR, botR, botR),
+            Path.Direction.CW
+        )
+        val capTop = when {
+            isCyan -> argb(0.28f, 180, 238, 255)
+            wide -> argb(0.16f, 255, 255, 255)
             else -> argb(0.24f, 255, 255, 255)
         }
         val capPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         capPaint.shader = LinearGradient(
-            0f, rect.top, 0f, capBottom,
-            intArrayOf(capTopColor, transparent(capTopColor)), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP
+            0f, capRect.top, 0f, capRect.bottom,
+            intArrayOf(capTop, capTop and 0x00ffffff), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP
         )
-        return Glass(facePaint, capPaint, capRect)
+        return Glass(facePaint, capPaint, capPath, bottomShade, bottomRect, rect)
     }
 
     private fun faceOf(key: Key): Face = when {
-        key.code == KeyCode.LANGUAGE_SWITCH -> Face.GLOBE
-        key.backgroundType == Key.BACKGROUND_TYPE_SPACEBAR -> Face.SPACEBAR
+        // globe (language switch) is a NEUTRAL glass face — only its icon is tinted muted by the engine
+        key.code == KeyCode.LANGUAGE_SWITCH -> Face.NEUTRAL
         key.backgroundType == Key.BACKGROUND_TYPE_FUNCTIONAL ||
             key.backgroundType == Key.BACKGROUND_TYPE_ACTION -> Face.CYAN
-        else -> Face.NEUTRAL // BACKGROUND_TYPE_NORMAL: letters, '.', etc.
+        else -> Face.NEUTRAL // NORMAL letters/'.', SPACEBAR
     }
 
-    private fun topEdgeColor(face: Face) = when (face) {
-        Face.CYAN -> argb(0.50f, 0, 212, 255)
-        Face.GLOBE -> argb(0.14f, 255, 255, 255)
-        else -> argb(0.28f, 255, 255, 255)
-    }
+    /** treat clearly-wider-than-tall keys (spacebar) as wide for the flattened sheen */
+    private fun isWide(width: Int, height: Int) = width > height * 2.4f
 
     private fun cacheKey(w: Int, h: Int, face: Face): Long =
         (w.toLong() shl 34) or (h.toLong() shl 4) or face.ordinal.toLong()
 
-    /** drop cached glint state when the keyboard is rebuilt so released keys don't linger */
-    fun reset() {
-        glintStart.clear()
-    }
+    fun reset() { glintStart.clear() }
 
     companion object {
-        private const val GLINT_MS = 420L // one-shot press glint duration (§6.1: ~0.42s)
-        private val SHADOW = argb(0.50f, 0, 0, 0)        // lift shadow rgba(0,0,0,0.50)
-        private val BOTTOM_EDGE = argb(0.50f, 0, 0, 0)   // bottom thickness edge rgba(0,0,0,0.50)
-        private val PRESS_POP = argb(0.07f, 255, 255, 255)
-        private val GLINT = argb(0.40f, 255, 255, 255)   // press glint rgba(255,255,255,0.40)
+        private const val GLINT_MS = 420L
+        private val LIFT = argb(0.50f, 0, 0, 0)             // 0 3px 6px rgba(0,0,0,0.5)
+        private val TOP_EDGE = argb(0.30f, 255, 255, 255)   // inset 0 1px 0 rgba(255,255,255,0.30)
+        private val TOP_EDGE_CY = argb(0.40f, 0, 212, 255)  // cyan inset top rgba(0,212,255,0.4)
+        private val SIDE_EDGE = argb(0.10f, 255, 255, 255)  // border 1px rgba(255,255,255,0.10)
+        private val BOTTOM_EDGE = argb(0.50f, 0, 0, 0)      // border-bottom 2px rgba(0,0,0,0.5)
+        private val PRESS_POP = argb(0.13f, 255, 255, 255)  // ≈ brightness(1.15)
+        private val GLINT = argb(0.40f, 255, 255, 255)      // rgba(255,255,255,0.40)
 
-        private fun argb(a: Float, r: Int, g: Int, b: Int) =
-            Color.argb((a * 255).toInt(), r, g, b)
-
-        private fun transparent(color: Int) = color and 0x00ffffff
+        private fun argb(a: Float, r: Int, g: Int, b: Int) = Color.argb((a * 255).toInt(), r, g, b)
     }
 }
