@@ -186,6 +186,7 @@ private fun MainSettingsScreen(navController: NavHostController) {
     var activePresetName by remember { mutableStateOf(presetManager.getActivePreset()?.name ?: "General") }
     var pendingCount by remember { mutableStateOf(pendingManager.getPendingCount()) }
     var copyToClipboard by remember { mutableStateOf(config.copyTranscriptionsToClipboard) }
+    var pauseMedia by remember { mutableStateOf(config.pauseMediaDuringRecording) }
 
     // ── Keyboard state ──
     var terminalRowDefault by remember { mutableStateOf(config.terminalRowDefault) }
@@ -544,6 +545,34 @@ private fun MainSettingsScreen(navController: NavHostController) {
                     onCheckedChange = {
                         copyToClipboard = it
                         config.copyTranscriptionsToClipboard = it
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = LBColors.Primary,
+                        checkedTrackColor = LBColors.Primary.copy(alpha = 0.3f),
+                        uncheckedThumbColor = LBColors.TextTertiary,
+                        uncheckedTrackColor = LBColors.Border
+                    )
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Pause media during recording (v2 §5.4)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(LBColors.Surface)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Pause media during recording", color = LBColors.TextPrimary, fontSize = 14.sp)
+                Switch(
+                    checked = pauseMedia,
+                    onCheckedChange = {
+                        pauseMedia = it
+                        config.pauseMediaDuringRecording = it
                     },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = LBColors.Primary,

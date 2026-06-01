@@ -106,6 +106,7 @@ class LANboardBridge(private val ime: LatinIME) {
     fun onInputViewStarted(editorInfo: EditorInfo?) {
         voiceController.config = config.toWhisperConfig()
         voiceController.activePreset = presetManager.getActivePreset()?.promptText
+        voiceController.pauseMediaDuringRecording = config.pauseMediaDuringRecording
 
         // Detect sensitive input fields
         if (editorInfo != null) {

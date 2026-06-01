@@ -28,12 +28,14 @@ class VoiceInputController(
     private val audioCaptureManager = AudioCaptureManager(context)
     private val whisperClient = WhisperClient()
     private val pendingManager = PendingRecordingsManager(context)
+    private val audioFocusManager = AudioFocusManager(context)
     private val mainHandler = Handler(Looper.getMainLooper())
 
     var listener: Listener? = null
     var config = WhisperClient.Config(serverUrl = "")
     var activePreset: String? = null
     var isSensitiveField = false
+    var pauseMediaDuringRecording = true
 
     private var state = State.IDLE
     private var transcriptionJob: Job? = null
@@ -165,6 +167,8 @@ class VoiceInputController(
     }
 
     fun retryPending() {
+        // §5.4: queue drains capture NO new audio, so they must NOT request audio focus.
+        // Do not add an audioFocusManager.request() here.
         scope.launch {
             if (!serverHealthy) return@launch
             val pending = pendingManager.getPendingRecordings()
@@ -193,15 +197,26 @@ class VoiceInputController(
     fun onInputViewFinished() {
         if (state == State.LISTENING) discardRecording()
         transcriptionJob?.cancel()
+        audioFocusManager.release() // defensive: don't leak focus if torn down mid-transcription
     }
 
     fun release() {
         audioCaptureManager.release()
         transcriptionJob?.cancel()
+        audioFocusManager.release()
     }
 
     private fun setState(newState: State) {
         state = newState
+        // §5.4 media-pause via audio focus, owned at the single state choke point so no path can
+        // leak focus. Request when recording starts; hold through TRANSCRIBING (avoids stop-start
+        // cycling between back-to-back dictations); release when the interaction ends at IDLE.
+        // Requesting never gates recording — the request's result is ignored here.
+        when (newState) {
+            State.LISTENING -> if (pauseMediaDuringRecording) audioFocusManager.request()
+            State.IDLE -> audioFocusManager.release()
+            State.TRANSCRIBING -> { /* keep focus through transcription */ }
+        }
         listener?.onStateChanged(newState)
     }
 
