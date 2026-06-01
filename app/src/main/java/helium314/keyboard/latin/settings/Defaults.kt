@@ -42,10 +42,14 @@ object Defaults {
     }
 
     private const val DEFAULT_SIZE_SCALE = 1.0f // 100%
-    const val PREF_THEME_STYLE = KeyboardTheme.STYLE_MATERIAL
+    // LANboard install defaults (v2.3 — Q6, §6.1/§6.7): the authored glass dark theme on the
+    // Rounded style (its rounded corners + bottom bevel are what the §6.7 glass face sits on).
+    // Both day and night point at LANboard Dark — the theme is authored dark-only; users wanting
+    // light / Material You switch to a stock HeliBoard colorset, which cleanly drops the glass.
+    const val PREF_THEME_STYLE = KeyboardTheme.STYLE_ROUNDED
     const val PREF_ICON_STYLE = KeyboardTheme.STYLE_MATERIAL
-    const val PREF_THEME_COLORS = KeyboardTheme.THEME_LIGHT
-    const val PREF_THEME_COLORS_NIGHT = KeyboardTheme.THEME_DARK
+    const val PREF_THEME_COLORS = KeyboardTheme.THEME_LANBOARD_DARK
+    const val PREF_THEME_COLORS_NIGHT = KeyboardTheme.THEME_LANBOARD_DARK
     const val PREF_THEME_KEY_BORDERS = false
     @JvmField
     val PREF_THEME_DAY_NIGHT = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
