@@ -63,6 +63,22 @@ object LBPresetPalette {
     )
 
     /**
+     * Locked name → list subtitle shown on Manage Presets (Q2-manage-presets-screen.html). Source of
+     * truth for both seeding fresh installs and backfilling presets stored before descriptions existed,
+     * so a device upgraded from an earlier build still shows the seeded subtitles.
+     */
+    private val LOCKED_DESCRIPTIONS: Map<String, String> = mapOf(
+        "Coding" to "Termux · code editors",
+        "Email" to "Professional correspondence",
+        "Personal" to "Messages · social",
+        "Terminal" to "Shell · git · docker",
+        "General" to "Default fallback · the signature",
+    )
+
+    /** The seeded subtitle for a locked default name, or "" for a user preset (which has no subtitle). */
+    fun defaultDescriptionForName(name: String): String = LOCKED_DESCRIPTIONS[name] ?: ""
+
+    /**
      * Reserved status / signature hues that the curated user palette must never offer (§6.2/§13.2):
      * green-pulse, amber, red are server-state channels; cyan is General-only; purple is banned.
      * Kept here so the palette UI and any validation share one exclusion list.
