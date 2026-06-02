@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LANboard V2.3 — Manage Presets (list + edit + swatch grid) — matches §8.1 / §9.3 / §6.2</title>
+<style>
+  :root{
+    --bg-deepest:#0a0d10; --bg-mid:#161b22; --bg-elev:#1c232c;
+    --text-primary:#e6edf3; --text-secondary:#9ba8b4; --text-muted:#6b7785; --text-quiet:#4a5360;
+    --border:#2a323c; --border-bright:#3a4451;
+    --cyan:#00d4ff; --cyan-soft:#4dd9ee; --amber:#f0b429; --red:#ef4444; --red-dim:#7a2828;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --font-mono:ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#05070a;min-height:100vh;font-family:var(--font-sans);color:var(--text-primary);
+       padding:28px 14px 48px;}
+  .pagecap{max-width:1180px;margin:0 auto 22px;color:var(--text-muted);font-size:13px;line-height:1.6;}
+  .pagecap b{color:var(--cyan-soft);font-weight:600;}
+  .flow{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;align-items:flex-start;max-width:1180px;margin:0 auto;}
+  .panel{width:358px;}
+  .cap{color:var(--text-muted);font-size:12px;line-height:1.5;margin:0 0 12px;}
+  .cap b{color:var(--cyan-soft);font-weight:600;}
+  .scr{background:var(--bg-deepest);border:0.5px solid #20262e;border-radius:18px;overflow:hidden;
+       padding:0 0 16px;}
+  .appbar{display:flex;align-items:center;gap:12px;padding:16px 14px 8px;}
+  .appbar .bk{color:var(--text-secondary);display:grid;place-items:center;}
+  .appbar .ttl{font-weight:600;font-size:17px;flex:1;}
+  .appbar .act{color:var(--cyan);font-size:14px;font-weight:600;}
+  .sect{font-weight:600;font-size:11px;color:var(--cyan-soft);letter-spacing:.08em;margin:14px 18px 6px;}
+  .hint{color:var(--text-muted);font-size:11.5px;line-height:1.45;margin:6px 18px 4px;}
+  .card{margin:0 12px;background:linear-gradient(180deg,#1a2029,#13181f);
+        border:1px solid var(--border);border-radius:14px;overflow:hidden;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);}
+  .rw{display:flex;align-items:center;gap:12px;padding:13px 14px;
+      border-bottom:1px solid rgba(255,255,255,0.04);}
+  .rw:last-child{border-bottom:none;}
+  .rw .tx{flex:1;min-width:0;}
+  .t1{font-size:14px;}
+  .t2{font-size:12px;color:var(--text-muted);margin-top:1px;}
+  .dot{width:13px;height:13px;border-radius:50%;flex:none;box-shadow:0 0 0 3px rgba(255,255,255,0.04);}
+  .grip{color:#48515d;display:grid;place-items:center;cursor:grab;}
+  .lock{color:var(--text-quiet);font-size:10px;border:1px solid var(--border-bright);border-radius:5px;
+        padding:1px 6px;letter-spacing:.04em;}
+  .addrow .ic{color:var(--cyan);width:22px;display:grid;place-items:center;}
+  .addrow .t1{color:var(--cyan);}
+  svg{width:18px;height:18px;}
+
+  /* ---- edit screen ---- */
+  .field{margin:10px 12px 0;}
+  .flabel{font-size:11px;color:var(--text-secondary);letter-spacing:.04em;margin:0 4px 6px;}
+  .input{background:linear-gradient(180deg,#12171d,#0e1217);border:1px solid var(--border);
+         border-radius:10px;padding:11px 12px;font-size:14px;color:var(--text-primary);
+         box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);}
+  .ta{min-height:78px;font-size:13px;line-height:1.5;color:var(--text-secondary);
+      font-family:var(--font-sans);white-space:pre-wrap;}
+  .count{display:flex;justify-content:flex-end;font-size:11px;color:var(--text-muted);margin:5px 4px 0;}
+  .count.warn{color:var(--amber);}
+
+  /* color block */
+  .colorblock{margin:16px 12px 0;background:linear-gradient(180deg,#1a2029,#13181f);
+              border:1px solid var(--border);border-radius:14px;padding:14px;
+              box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);}
+  .cbhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .cbhead .lbl{font-size:13px;font-weight:600;}
+  .cbhead .nm{font-size:11.5px;color:var(--text-muted);}
+  .cbbody{display:flex;gap:14px;align-items:flex-start;}
+  .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;flex:1;}
+  .sw{aspect-ratio:1;border-radius:50%;cursor:pointer;position:relative;
+      box-shadow:inset 0 1px 1px rgba(255,255,255,0.25),inset 0 -2px 3px rgba(0,0,0,0.35);}
+  .sw.sel{box-shadow:0 0 0 2px var(--bg-deepest),0 0 0 4px var(--cyan),
+          inset 0 1px 1px rgba(255,255,255,0.3);}
+  .sw.sel::after{content:"";position:absolute;inset:0;margin:auto;width:9px;height:9px;
+      border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg) translate(-1px,-2px);}
+  .def{position:absolute;bottom:-3px;right:-3px;width:8px;height:8px;border-radius:50%;
+       background:var(--bg-deepest);border:1px solid var(--text-quiet);}
+
+  /* mic preview */
+  .prev{width:96px;flex:none;text-align:center;}
+  .ring{width:72px;height:72px;margin:2px auto 6px;border-radius:50%;position:relative;
+        display:grid;place-items:center;}
+  .ring .circle{width:54px;height:54px;border-radius:50%;border:2px solid var(--cyan);
+        box-shadow:inset 0 0 9px rgba(0,212,255,0.30);display:grid;place-items:center;color:var(--micColor,#3b82f6);}
+  .ring .spk{position:absolute;width:3px;border-radius:2px;left:50%;top:50%;transform-origin:50% 100%;}
+  .prevcap{font-size:10.5px;color:var(--text-muted);line-height:1.4;}
+  .reserved{margin:14px 14px 0;font-size:11px;color:var(--text-muted);line-height:1.5;
+            border-top:1px solid rgba(255,255,255,0.05);padding-top:12px;}
+  .reserved .swatchlist{display:inline-flex;gap:5px;vertical-align:middle;margin-left:4px;}
+  .reserved .rs{width:12px;height:12px;border-radius:50%;display:inline-block;}
+
+  /* General fixed-cyan chip */
+  .fixedchip{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#10242c,#0b181d);
+             border:1px solid rgba(0,212,255,0.28);border-radius:12px;padding:13px 14px;
+             box-shadow:inset 0 1px 0 rgba(0,212,255,0.18);}
+  .fixedchip .cydot{width:26px;height:26px;border-radius:50%;background:var(--cyan);flex:none;
+             box-shadow:0 0 10px rgba(0,212,255,0.6),inset 0 1px 1px rgba(255,255,255,0.4);}
+  .fixedchip .tx .t1{color:var(--cyan-soft);font-weight:600;}
+  .delrow{margin:18px 12px 0;text-align:center;}
+  .del{display:inline-flex;align-items:center;gap:7px;color:#c46060;font-size:13px;
+       border:1px solid var(--red-dim);border-radius:10px;padding:10px 18px;}
+</style>
+</head>
+<body>
+  <div class="pagecap">
+    <b>LANboard V2.3 &mdash; Manage Presets visual contract.</b> Locks the §8.1/§9.3 list, the §6.2 curated swatch grid,
+    and the per-preset live mic preview. Decisions baked in: <b>(a)</b> cyan is hidden from the grid &mdash; General's
+    color is a fixed identity chip, not a pick; <b>(b)</b> the &ldquo;Auto-select per app&rdquo; toggle lives only under
+    Settings&rarr;Voice accuracy, <i>not</i> here; <b>(c)</b> reorder via an explicit drag handle; General is
+    permanent / non-deletable. Same frosted-card + token language as the §6.6 settings reskin.
+  </div>
+
+  <div class="flow">
+
+    <!-- ============ LIST SCREEN ============ -->
+    <div class="panel">
+      <div class="cap"><b>1 &middot; Manage Presets (list).</b> Identity dot &middot; name &middot; subtitle &middot; drag handle.
+        Tap a row to edit; drag the handle to reorder (order = the single global preset order &mdash; drives picker fill
+        + per-app cold-start). No auto-select toggle on this screen.</div>
+      <div class="scr">
+        <div class="appbar">
+          <div class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M5 12l6 6M5 12l6-6"/></svg></div>
+          <div class="ttl">Manage presets</div>
+        </div>
+        <div class="hint">Drag to reorder. Order sets the quick-picker fan order and the per-app cold-start default.</div>
+        <div class="card">
+          <div class="rw"><div class="dot" style="background:#3b82f6"></div><div class="tx"><div class="t1">Coding</div><div class="t2">Termux &middot; code editors</div></div><div class="grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 7h.01M8 12h.01M8 17h.01M16 7h.01M16 12h.01M16 17h.01"/></svg></div></div>
+          <div class="rw"><div class="dot" style="background:#14b8a6"></div><div class="tx"><div class="t1">Email</div><div class="t2">Professional correspondence</div></div><div class="grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 7h.01M8 12h.01M8 17h.01M16 7h.01M16 12h.01M16 17h.01"/></svg></div></div>
+          <div class="rw"><div class="dot" style="background:#e0569f"></div><div class="tx"><div class="t1">Personal</div><div class="t2">Messages &middot; social</div></div><div class="grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 7h.01M8 12h.01M8 17h.01M16 7h.01M16 12h.01M16 17h.01"/></svg></div></div>
+          <div class="rw"><div class="dot" style="background:#8090a8"></div><div class="tx"><div class="t1">Terminal</div><div class="t2">Shell &middot; git &middot; docker</div></div><div class="grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 7h.01M8 12h.01M8 17h.01M16 7h.01M16 12h.01M16 17h.01"/></svg></div></div>
+          <div class="rw"><div class="dot" style="background:#00d4ff;box-shadow:0 0 8px rgba(0,212,255,.5)"></div><div class="tx"><div class="t1">General</div><div class="t2">Default fallback &middot; the signature</div></div><div class="lock">PERMANENT</div></div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="rw addrow"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div><div class="tx"><div class="t1">Add preset</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ EDIT SCREEN (non-General: Coding) ============ -->
+    <div class="panel">
+      <div class="cap"><b>2 &middot; Edit preset (Coding).</b> Name, prompt + soft word-limit, then the <b>Preset color</b>
+        block: curated swatch grid (cyan / status hues / purple excluded) with the live mic preview showing
+        cyan&rarr;preset-tip spikes. Delete available for non-General presets.</div>
+      <div class="scr">
+        <div class="appbar">
+          <div class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M5 12l6 6M5 12l6-6"/></svg></div>
+          <div class="ttl">Edit preset</div>
+          <div class="act">Done</div>
+        </div>
+
+        <div class="field"><div class="flabel">NAME</div><div class="input">Coding</div></div>
+        <div class="field"><div class="flabel">PROMPT</div><div class="input ta">Technical dictation about software development and command-line work. Expect code, function and variable names, and shell commands; treat spoken flags, paths, and symbols literally. Conversational but precise.</div>
+          <div class="count">27 / ~150 words</div>
+        </div>
+
+        <div class="colorblock">
+          <div class="cbhead"><div class="lbl">Preset color</div><div class="nm">tints the mic icon + spike tips</div></div>
+          <div class="cbbody">
+            <div class="grid">
+              <div class="sw sel" style="background:#3b82f6"><span class="def"></span></div>
+              <div class="sw" style="background:#6366f1"></div>
+              <div class="sw" style="background:#14b8a6"><span class="def"></span></div>
+              <div class="sw" style="background:#5b8fb0"></div>
+              <div class="sw" style="background:#8090a8"><span class="def"></span></div>
+              <div class="sw" style="background:#e0569f"><span class="def"></span></div>
+              <div class="sw" style="background:#c0567b"></div>
+              <div class="sw" style="background:#f472b6"></div>
+              <div class="sw" style="background:#f97316"></div>
+              <div class="sw" style="background:#e8845c"></div>
+              <div class="sw" style="background:#c2855a"></div>
+              <div class="sw" style="background:#a3c644"></div>
+            </div>
+            <div class="prev">
+              <div class="ring" style="--micColor:#3b82f6">
+                <div class="spk" style="height:14px;transform:translate(-50%,-100%) rotate(-32deg);background:linear-gradient(180deg,#3b82f6,#00d4ff)"></div>
+                <div class="spk" style="height:20px;transform:translate(-50%,-100%) rotate(8deg);background:linear-gradient(180deg,#3b82f6,#00d4ff)"></div>
+                <div class="spk" style="height:11px;transform:translate(-50%,-100%) rotate(40deg);background:linear-gradient(180deg,#3b82f6,#00d4ff)"></div>
+                <div class="circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg></div>
+              </div>
+              <div class="prevcap">Live preview</div>
+            </div>
+          </div>
+          <div class="reserved">Cyan is reserved for General. Status hues stay locked out:
+            <span class="swatchlist">
+              <span class="rs" style="background:#3ddc97" title="green-pulse"></span>
+              <span class="rs" style="background:#f0b429" title="amber"></span>
+              <span class="rs" style="background:#ef4444" title="red"></span>
+              <span class="rs" style="background:#00d4ff" title="cyan"></span>
+            </span>
+            &mdash; plus purple.
+          </div>
+        </div>
+
+        <div class="delrow"><span class="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Delete preset</span></div>
+      </div>
+    </div>
+
+    <!-- ============ EDIT SCREEN (General) ============ -->
+    <div class="panel">
+      <div class="cap"><b>3 &middot; Edit preset (General).</b> The exception: no swatch grid. General's color is a
+        <b>fixed cyan identity chip</b> (sole owner of cyan, §8.1), and there is no Delete &mdash; it's permanent.
+        Everything else (name, prompt) edits normally.</div>
+      <div class="scr">
+        <div class="appbar">
+          <div class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M5 12l6 6M5 12l6-6"/></svg></div>
+          <div class="ttl">Edit preset</div>
+          <div class="act">Done</div>
+        </div>
+
+        <div class="field"><div class="flabel">NAME</div><div class="input">General</div></div>
+        <div class="field"><div class="flabel">PROMPT</div><div class="input ta" style="color:var(--text-quiet)">No bias &mdash; neutral transcription. (Empty prompt; the fallback when no other preset applies.)</div>
+          <div class="count">0 / ~150 words</div>
+        </div>
+
+        <div class="colorblock">
+          <div class="cbhead"><div class="lbl">Preset color</div><div class="nm">fixed</div></div>
+          <div class="fixedchip">
+            <div class="cydot"></div>
+            <div class="tx"><div class="t1">Always cyan &mdash; the signature</div><div class="t2" style="margin-top:2px">General owns LANboard's cyan; it can't be recolored.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

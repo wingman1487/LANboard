@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LANboard V2.3 — §7.4 delayed-transcription banner</title>
+<style>
+  :root{
+    --bg-deepest:#0a0d10; --text-primary:#e6edf3; --text-secondary:#9ba8b4; --text-muted:#6b7785;
+    --text-quiet:#4a5360; --border:#2a323c; --cyan:#00d4ff; --cyan-soft:#4dd9ee; --amber:#f0b429;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --font-mono:ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#05070a;min-height:100vh;font-family:var(--font-sans);color:var(--text-primary);
+       padding:28px 14px 48px;}
+  .pagecap{max-width:980px;margin:0 auto 22px;color:var(--text-muted);font-size:13px;line-height:1.6;}
+  .pagecap b{color:var(--cyan-soft);font-weight:600;}
+  .flow{display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-start;max-width:980px;margin:0 auto;}
+  .panel{width:430px;}
+  .cap{color:var(--text-muted);font-size:12px;line-height:1.5;margin:0 0 12px;}
+  .cap b{color:var(--cyan-soft);font-weight:600;}
+  .amb{color:var(--amber);font-weight:600;}
+
+  .kb{background:linear-gradient(180deg,#131820,#0e1218);border-top:1px solid #2a323c;border-radius:14px;
+      padding:8px 6px 12px;position:relative;}
+
+  /* expanded banner — floating glass over the strip */
+  .banner{margin:0 4px 8px;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:11px;
+      background:linear-gradient(180deg,rgba(34,30,18,0.92),rgba(22,20,14,0.92));
+      border:1px solid rgba(240,180,41,0.32);border-left:3px solid var(--amber);
+      box-shadow:0 10px 24px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+  .bdot{width:9px;height:9px;border-radius:50%;background:var(--amber);flex:none;
+        box-shadow:0 0 8px rgba(240,180,41,0.7);}
+  .btext{flex:1;min-width:0;}
+  .blabel{font-size:11px;color:var(--amber);font-weight:600;letter-spacing:.03em;}
+  .bprev{font-size:13px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+  .bbtns{display:flex;align-items:center;gap:7px;flex:none;}
+  .btn{font-size:12.5px;border-radius:8px;padding:7px 12px;font-weight:600;}
+  .btn.ins{background:var(--cyan);color:#04222b;box-shadow:0 0 0 1px rgba(0,212,255,0.4),inset 0 1px 0 rgba(255,255,255,0.4);}
+  .btn.cpy{color:var(--text-secondary);border:1px solid var(--border);}
+  .btn.x{color:var(--text-muted);padding:7px 9px;border:1px solid transparent;}
+  .count{font-size:10.5px;color:var(--amber);border:1px solid rgba(240,180,41,0.4);border-radius:6px;
+         padding:1px 6px;margin-left:2px;}
+
+  /* top strip */
+  .strip{display:grid;grid-template-columns:34px 1fr 46px;gap:8px;align-items:center;padding:6px;min-height:46px;}
+  .arrow{height:30px;border-radius:8px;display:grid;place-items:center;color:var(--cyan);font-size:15px;position:relative;
+         background:linear-gradient(180deg,#2b333d,#181e25);border:1px solid rgba(255,255,255,0.08);
+         box-shadow:inset 0 1px 0 rgba(255,255,255,0.2);}
+  .arrow .badge{position:absolute;top:-5px;right:-5px;width:13px;height:13px;border-radius:50%;background:var(--amber);
+        border:2px solid #131820;box-shadow:0 0 7px rgba(240,180,41,0.8);}
+  .sugg{display:flex;justify-content:space-around;font-size:13px;color:var(--text-muted);}
+  .sugg .p{color:var(--text-primary);font-weight:500;}
+  .ring{width:38px;height:38px;border-radius:50%;border:2px solid var(--cyan);display:grid;place-items:center;
+        color:var(--cyan);justify-self:end;box-shadow:inset 0 0 7px rgba(0,212,255,0.35);}
+  .ring svg{width:18px;height:18px;}
+  .arrow svg{width:15px;height:15px;}
+
+  /* glass key rows (abbreviated, for context) */
+  .row{display:flex;gap:5px;margin:5px 4px;}
+  .gk{position:relative;flex:1;height:38px;border-radius:8px;display:grid;place-items:center;font-size:14px;color:#e6edf3;
+      background:linear-gradient(180deg,#39434f,#232b34 46%,#161c23);border:1px solid rgba(255,255,255,0.10);
+      border-top-color:rgba(255,255,255,0.28);border-bottom:2px solid rgba(0,0,0,0.5);
+      box-shadow:0 3px 6px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.30);}
+</style>
+</head>
+<body>
+  <div class="pagecap">
+    <b>LANboard V2.3 &mdash; §7.4 delayed-transcription banner.</b> When a queued recording transcribes after the network
+    returns, focus may be in a different field, so it never auto-inserts. Replaces the non-actionable v1 Toast. A floating
+    glass surface (real backdrop blur, §6.7) above the full-width top strip, amber-accented. Collapses to an amber dot on
+    the <b>&#9656;</b> toolbar arrow when room is tight. Session-scoped; the transcription also stays in the Pending Queue
+    regardless. Multiple arrivals show one banner + a &ldquo;+N&rdquo; count.
+  </div>
+
+  <div class="flow">
+
+    <!-- EXPANDED -->
+    <div class="panel">
+      <div class="cap"><b>Expanded.</b> Amber dot + label, ~60-char preview (ellipsized), then
+        <b>Insert</b> (cyan primary, drops at cursor) &middot; <b>Copy</b> (clipboard) &middot; <b>&times;</b> (discard).
+        Full-width above the strip in every posture.</div>
+      <div class="kb">
+        <div class="banner">
+          <div class="bdot"></div>
+          <div class="btext">
+            <div class="blabel">TRANSCRIPTION READY</div>
+            <div class="bprev">Let's push the release to Thursday and loop in the infra team&hellip;</div>
+          </div>
+          <div class="bbtns">
+            <span class="btn ins">Insert</span>
+            <span class="btn cpy">Copy</span>
+            <span class="btn x"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+          </div>
+        </div>
+        <div class="strip">
+          <div class="arrow">&#9656;</div>
+          <div class="sugg"><span>the</span><span class="p">Thursday</span><span>release</span></div>
+          <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg></div>
+        </div>
+        <div class="row"><div class="gk">q</div><div class="gk">w</div><div class="gk">e</div><div class="gk">r</div><div class="gk">t</div><div class="gk">y</div><div class="gk">u</div><div class="gk">i</div><div class="gk">o</div><div class="gk">p</div></div>
+        <div class="row"><div class="gk">a</div><div class="gk">s</div><div class="gk">d</div><div class="gk">f</div><div class="gk">g</div><div class="gk">h</div><div class="gk">j</div><div class="gk">k</div><div class="gk">l</div></div>
+      </div>
+    </div>
+
+    <!-- COLLAPSED + MULTI -->
+    <div class="panel">
+      <div class="cap"><b>Collapsed (tight space).</b> Banner collapses to a small amber dot on the
+        <b>&#9656;</b> arrow; it pulses once on arrival, then rests. Tap to expand. With multiple pending, the dot carries
+        a <b>+N</b> count and expanding cycles through them.</div>
+      <div class="kb">
+        <div class="strip">
+          <div class="arrow">&#9656;<span class="badge"></span></div>
+          <div class="sugg"><span>infra</span><span class="p">infrastructure</span><span>info</span></div>
+          <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg></div>
+        </div>
+        <div class="row"><div class="gk">q</div><div class="gk">w</div><div class="gk">e</div><div class="gk">r</div><div class="gk">t</div><div class="gk">y</div><div class="gk">u</div><div class="gk">i</div><div class="gk">o</div><div class="gk">p</div></div>
+        <div class="row"><div class="gk">a</div><div class="gk">s</div><div class="gk">d</div><div class="gk">f</div><div class="gk">g</div><div class="gk">h</div><div class="gk">j</div><div class="gk">k</div><div class="gk">l</div></div>
+      </div>
+
+      <div class="cap" style="margin-top:20px"><b>Multiple pending.</b> One banner at a time; the &ldquo;+2&rdquo; count
+        shows others are waiting. Resolving this one (Insert / Copy / &times;) advances to the next.</div>
+      <div class="kb">
+        <div class="banner">
+          <div class="bdot"></div>
+          <div class="btext">
+            <div class="blabel">TRANSCRIPTION READY <span class="count">+2 more</span></div>
+            <div class="bprev">kubectl get pods &mdash;namespace prod and check the rollout&hellip;</div>
+          </div>
+          <div class="bbtns">
+            <span class="btn ins">Insert</span>
+            <span class="btn cpy">Copy</span>
+            <span class="btn x"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+          </div>
+        </div>
+        <div class="strip">
+          <div class="arrow">&#9656;</div>
+          <div class="sugg"><span>get</span><span class="p">kubectl</span><span>pods</span></div>
+          <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

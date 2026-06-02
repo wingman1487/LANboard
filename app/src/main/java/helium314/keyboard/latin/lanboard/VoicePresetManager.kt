@@ -20,13 +20,19 @@ class VoicePresetManager(context: Context) {
         val isDefault: Boolean = false,
         /** per-preset color as an ARGB hex string (§6.2/§8.1, Q2). Drives the mic-icon tint and the
          *  listening spike-tip color. Defaults to General cyan; curated from [LBPresetPalette]. */
-        val colorHex: String = LBPresetPalette.GENERAL_CYAN_HEX
+        val colorHex: String = LBPresetPalette.GENERAL_CYAN_HEX,
+        /** short subtitle shown under the name on the Manage Presets list (§9.3 render). Optional;
+         *  blank for user presets, which simply show no subtitle. */
+        val description: String = ""
     ) {
-        fun wordCount(): Int = promptText.trim().split(Regex("\\s+")).size
+        fun wordCount(): Int = if (promptText.isBlank()) 0 else promptText.trim().split(Regex("\\s+")).size
         fun isOverLimit(): Boolean = wordCount() > SOFT_LIMIT_WORDS
 
         /** the resolved ARGB int for [colorHex], falling back to General cyan if it is malformed. */
         fun colorInt(): Int = LBPresetPalette.parseOrDefault(colorHex)
+
+        /** True for the permanent, non-deletable, always-cyan General preset (§6.2/§8.1). */
+        fun isGeneral(): Boolean = LBPresetPalette.isGeneral(name)
     }
 
     private val prefs: SharedPreferences =
@@ -46,7 +52,8 @@ class VoicePresetManager(context: Context) {
                     "React, Docker, Kubernetes, Git, GitHub, API, REST, JSON, SQL, PostgreSQL, " +
                     "refactor, deploy, merge, commit, pull request, code review",
                 isDefault = true,
-                colorHex = LBPresetPalette.CODING_HEX
+                colorHex = LBPresetPalette.CODING_HEX,
+                description = "Termux · code editors"
             ),
             Preset(
                 "Email",
@@ -54,14 +61,16 @@ class VoicePresetManager(context: Context) {
                     "proper punctuation. Dear, Regards, Best wishes, Please find attached, " +
                     "I hope this email finds you well, Looking forward to hearing from you",
                 isDefault = true,
-                colorHex = LBPresetPalette.EMAIL_HEX
+                colorHex = LBPresetPalette.EMAIL_HEX,
+                description = "Professional correspondence"
             ),
             Preset(
                 "Personal",
                 "Casual messaging, text messages, chat. Contractions okay, informal tone. " +
                     "Hey, what's up, gonna, wanna, yeah, nah, cool, awesome, lol",
                 isDefault = true,
-                colorHex = LBPresetPalette.PERSONAL_HEX
+                colorHex = LBPresetPalette.PERSONAL_HEX,
+                description = "Messages · social"
             ),
             Preset(
                 "Terminal",
@@ -69,13 +78,15 @@ class VoicePresetManager(context: Context) {
                     "sudo, apt, pip, npm, yarn, cargo, grep, sed, awk, curl, wget, " +
                     "chmod, chown, ls, cd, mkdir, rm, cp, mv, cat, less, tail, head",
                 isDefault = true,
-                colorHex = LBPresetPalette.TERMINAL_HEX
+                colorHex = LBPresetPalette.TERMINAL_HEX,
+                description = "Shell · git · docker"
             ),
             Preset(
                 "General",
                 "",
                 isDefault = true,
-                colorHex = LBPresetPalette.GENERAL_HEX
+                colorHex = LBPresetPalette.GENERAL_HEX,
+                description = "Default fallback · the signature"
             )
         )
         savePresets(defaults)
@@ -95,7 +106,8 @@ class VoicePresetManager(context: Context) {
                     isDefault = obj.optBoolean("isDefault", false),
                     // back-compat: presets stored before colors existed have no "colorHex" key —
                     // fall back to the locked default for that name (or General cyan for others)
-                    colorHex = obj.optString("colorHex", LBPresetPalette.defaultHexForName(name))
+                    colorHex = obj.optString("colorHex", LBPresetPalette.defaultHexForName(name)),
+                    description = obj.optString("description", "")
                 )
             }
         } catch (e: Exception) {
@@ -111,6 +123,7 @@ class VoicePresetManager(context: Context) {
                 put("promptText", preset.promptText)
                 put("isDefault", preset.isDefault)
                 put("colorHex", preset.colorHex)
+                put("description", preset.description)
             })
         }
         prefs.edit().putString(KEY_PRESETS, array.toString()).apply()
@@ -143,12 +156,29 @@ class VoicePresetManager(context: Context) {
         }
     }
 
+    /**
+     * Delete a preset. General is permanent and is never removed (§6.2/§8.1 — guarded here as well as
+     * in the UI). On deletion the active preset cascades back to General (§8.1/G1).
+     */
     fun deletePreset(name: String) {
+        if (LBPresetPalette.isGeneral(name)) return
         val presets = getPresets().toMutableList()
         presets.removeAll { it.name == name }
         savePresets(presets)
         if (prefs.getString(KEY_ACTIVE, "") == name) {
             setActivePreset("General")
         }
+    }
+
+    /**
+     * Move the preset at [fromIndex] to [toIndex], persisting the new global order. This single order
+     * drives the quick-picker fan order and the per-app cold-start default (§9.3). Out-of-range indices
+     * are a no-op so a stray drag can never corrupt storage.
+     */
+    fun reorderPresets(fromIndex: Int, toIndex: Int) {
+        val presets = getPresets().toMutableList()
+        if (fromIndex !in presets.indices || toIndex !in presets.indices || fromIndex == toIndex) return
+        presets.add(toIndex, presets.removeAt(fromIndex))
+        savePresets(presets)
     }
 }
