@@ -67,32 +67,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // ─── Design tokens ──────────────────────────────────────────────────────────────
-
-internal object LBColors {
-    val Background = Color(0xFF0A0D10)
-    val Surface = Color(0xFF161B22)
-    val ElevatedSurface = Color(0xFF1C232C)
-    val Border = Color(0xFF2A323C)
-    val BorderBright = Color(0xFF3A4451)
-    val Primary = Color(0xFF00D4FF)
-    val TextPrimary = Color(0xFFE6EDF3)
-    val TextSecondary = Color(0xFF9BA8B4)
-    val TextTertiary = Color(0xFF6B7785)
-    val TextQuiet = Color(0xFF4A5360)
-    val GreenPulse = Color(0xFF3DDC97)
-    val Amber = Color(0xFFF0B429)
-    val Red = Color(0xFFEF4444)
-}
-
-internal val lanboardDarkScheme = darkColorScheme(
-    background = LBColors.Background,
-    surface = LBColors.Surface,
-    surfaceVariant = LBColors.ElevatedSurface,
-    primary = LBColors.Primary,
-    onBackground = LBColors.TextPrimary,
-    onSurface = LBColors.TextPrimary,
-    onSurfaceVariant = LBColors.TextSecondary,
-)
+//
+// LBColors + lanboardDarkScheme now live in the shared §6.1 token source LANboardTheme.kt
+// (same package) so the keyboard + the LANboard-native settings + the re-skinned inherited
+// HeliBoard settings all consume identical values — §6.1 "one token source spans both domains".
 
 // ─── Navigation routes ──────────────────────────────────────────────────────────
 
@@ -656,9 +634,13 @@ private fun MainSettingsScreen(navController: NavHostController) {
 
             Spacer(Modifier.height(8.dp))
 
-            // HeliBoard settings
+            // Keyboard & typing — the inherited HeliBoard settings, now re-skinned to LANboard Dark
+            // (§6.6). Relabelled off the "HeliBoard settings" wording so it reads as a native LANboard
+            // entry. NOTE: the deeper §6.6/§9.3 integration model (deep-link individual native rows vs.
+            // host these screens inside the LANboard nav graph) is flagged for design review — this
+            // still launches SettingsActivity, which now wears the shared LANboard Dark theme.
             SettingsRow(
-                label = "HeliBoard settings",
+                label = "Keyboard & typing",
                 value = "",
                 onClick = {
                     context.startActivity(
