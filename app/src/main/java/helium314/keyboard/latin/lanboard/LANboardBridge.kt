@@ -88,6 +88,10 @@ class LANboardBridge(private val ime: LatinIME) {
             true
         }
 
+        // §6.2: the mic icon + listening spike tips carry the active preset's color (the per-app
+        // auto-select feedback) from the moment the view exists — visible at idle, before recording.
+        applyActivePresetColor()
+
         // Terminal row
         terminalRowManager = TerminalRowManager(view).apply {
             init()
@@ -121,8 +125,21 @@ class LANboardBridge(private val ime: LatinIME) {
 
         voiceController.onInputViewStarted()
         updateRingForServerState()
+        applyActivePresetColor()
         startFrameRunner()
         syncTerminalRow()
+    }
+
+    /** §6.2: push the active preset's color into the mic icon (all states) and the ring spike-tip
+     *  color. The ring STROKE stays the server-state channel and is NOT tinted here. Falls back to
+     *  General cyan via [VoicePresetManager.Preset.colorInt] / [LBPresetPalette] so a bad stored hex
+     *  never crashes the IME. */
+    private fun applyActivePresetColor() {
+        val preset = presetManager.getActivePreset()
+        val colorInt = preset?.colorInt() ?: LBPresetPalette.GENERAL_CYAN
+        val isGeneral = preset == null || preset.name == "General"
+        micRingView?.setActivePreset(colorInt, isGeneral)
+        micIcon?.setColorFilter(colorInt)
     }
 
     private fun syncTerminalRow() {
@@ -151,24 +168,18 @@ class LANboardBridge(private val ime: LatinIME) {
                 else
                     MicRingView.State.IDLE_UNREACHABLE
                 suggestionStripView?.visibility = View.VISIBLE
-                micIcon?.setColorFilter(
-                    ime.getColor(R.color.lb_text_secondary)
-                )
             }
             VoiceInputController.State.LISTENING -> {
                 micRingView?.state = MicRingView.State.LISTENING
-                micIcon?.setColorFilter(
-                    ime.getColor(R.color.lb_cyan)
-                )
             }
             VoiceInputController.State.TRANSCRIBING -> {
                 micRingView?.state = MicRingView.State.TRANSCRIBING
                 suggestionStripView?.visibility = View.VISIBLE
-                micIcon?.setColorFilter(
-                    ime.getColor(R.color.lb_cyan)
-                )
             }
         }
+        // §6.2: the mic icon shows the active preset color in ALL three states (the ring stroke is the
+        // separate server-state channel). Re-applied here so a preset switch reflects immediately.
+        applyActivePresetColor()
     }
 
     private fun updateRingForServerState() {
