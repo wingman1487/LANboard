@@ -65,7 +65,14 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         const val THEME_PINK = "pink"
         const val THEME_SAND = "sand"
         const val THEME_VIOLETTE = "violette"
+
+        // LANboard signature theme (v2.3 — Q6, §6.1/§6.7): the authored glass dark theme,
+        // set as the install default. Implemented by populating the engine colorset with the
+        // §6.1 tokens (not a fork); the faux-glass key faces are painted by the LANboard
+        // GlassKeyRenderer, gated on Colors.glassKeys which only this colorset sets true.
+        const val THEME_LANBOARD_DARK = "lanboard_dark"
         fun getAvailableDefaultColors(prefs: SharedPreferences, isNight: Boolean) = listOfNotNull(
+            THEME_LANBOARD_DARK,
             if (!isNight) THEME_LIGHT else null, THEME_DARK,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) THEME_DYNAMIC else null,
             if (prefs.getString(Settings.PREF_THEME_STYLE, Defaults.PREF_THEME_STYLE) == STYLE_HOLO) THEME_HOLO_WHITE else null,
@@ -152,6 +159,19 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) DynamicColors(context, themeStyle, hasBorders, backgroundImage)
                     else getThemeColors(THEME_LIGHT, themeStyle, context, prefs, isNight)
                 }
+                THEME_LANBOARD_DARK -> DefaultColors(
+                    themeStyle,
+                    hasBorders,
+                    "#00d4ff".toColorInt(),  // accent — cyan signature (§6.1)
+                    "#131820".toColorInt(),  // keyboard background — the §6.7 render's "light black" (.kb), so glass keys pop
+                    "#232b34".toColorInt(),  // neutral key face — mid of the §6.1 neutral glass gradient
+                    "#143039".toColorInt(),  // functional/command key face — mid of the §6.1 cyan glass gradient
+                    "#232b34".toColorInt(),  // spacebar — neutral glass like character keys
+                    "#e6edf3".toColorInt(),  // key text — text-primary (§6.1)
+                    "#9ba8b4".toColorInt(),  // key hint text — text-secondary (§6.1)
+                    keyboardBackground = backgroundImage,
+                    glassKeys = true,
+                )
                 THEME_LIGHT -> DefaultColors(
                     themeStyle,
                     hasBorders,

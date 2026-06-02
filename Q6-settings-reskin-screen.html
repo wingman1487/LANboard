@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LANboard V2.3 — Settings reskin (§6.6) + split-as-preference</title>
+<style>
+  :root{
+    --bg-deepest:#0a0d10; --text-primary:#e6edf3; --text-secondary:#9ba8b4;
+    --text-muted:#6b7785; --text-quiet:#4a5360; --border:#2a323c; --cyan:#00d4ff; --cyan-soft:#4dd9ee;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#05070a;min-height:100vh;display:grid;place-items:start center;
+        padding:28px 12px;font-family:var(--font-sans);color:var(--text-primary);}
+  .cap{max-width:358px;margin:0 auto 14px;color:var(--text-muted);font-size:12px;line-height:1.5;}
+  .cap b{color:var(--cyan-soft);font-weight:600;}
+  .scr{background:var(--bg-deepest);border:0.5px solid #20262e;border-radius:18px;
+       padding:0 0 16px;overflow:hidden;max-width:358px;margin:0 auto;}
+  .appbar{display:flex;align-items:center;gap:12px;padding:16px 16px 8px;}
+  .appbar .bk{color:var(--text-secondary);display:grid;place-items:center;}
+  .appbar .ttl{font-weight:600;font-size:17px;}
+  .sect{font-weight:600;font-size:11px;color:var(--cyan-soft);letter-spacing:.08em;margin:14px 18px 6px;}
+  .card{margin:0 12px;background:linear-gradient(180deg,#1a2029,#13181f);
+        border:1px solid var(--border);border-radius:14px;overflow:hidden;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);}
+  .rw{display:flex;align-items:center;gap:12px;padding:13px 14px;
+      border-bottom:1px solid rgba(255,255,255,0.04);}
+  .rw:last-child{border-bottom:none;}
+  .rw .ic{color:var(--text-secondary);width:22px;display:grid;place-items:center;}
+  .rw .tx{flex:1;min-width:0;}
+  .t1{font-size:14px;}
+  .t2{font-size:12px;color:var(--text-muted);margin-top:1px;}
+  .val{font-size:13px;color:var(--text-secondary);}
+  .chev{color:#4a5563;display:grid;place-items:center;}
+  .tog{width:42px;height:24px;border-radius:12px;position:relative;flex:none;}
+  .tog.on{background:var(--cyan);box-shadow:inset 0 0 6px rgba(0,212,255,.45);}
+  .tog::after{content:"";position:absolute;top:3px;width:18px;height:18px;border-radius:50%;}
+  .tog.on::after{left:21px;background:#fff;}
+  .slider{flex:1;height:4px;border-radius:2px;background:var(--border);position:relative;margin:0 6px;}
+  .slider .fill{position:absolute;left:0;top:0;height:100%;border-radius:2px;background:var(--cyan);}
+  .slider .knob{position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;
+                border-radius:50%;background:var(--cyan);box-shadow:0 0 0 4px rgba(0,212,255,.18);}
+  .dot{width:12px;height:12px;border-radius:50%;flex:none;}
+  svg{width:18px;height:18px;}
+</style>
+</head>
+<body>
+  <div class="cap">LANboard V2.3 &middot; <b>Settings reskin</b> with <b>Split keyboard as an always-active preference</b>
+    (not grayed) &mdash; on/off, default on, mirrored to the toolbar; Split width gated on the toggle, not posture.</div>
+  <div class="scr">
+    <div class="appbar">
+      <div class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M5 12l6 6M5 12l6-6"/></svg></div>
+      <div class="ttl">LANboard Settings</div>
+    </div>
+    <div class="sect">APPEARANCE</div>
+    <div class="card">
+      <div class="rw">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 010 16z" fill="currentColor" stroke="none"/></svg></div>
+        <div class="tx"><div class="t1">Theme</div></div>
+        <div class="val">LANboard Dark</div>
+        <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      </div>
+      <div class="rw">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="5"/></svg></div>
+        <div class="tx"><div class="t1">Glass key surfaces</div><div class="t2">3D glass with press glint</div></div>
+        <div class="tog on"></div>
+      </div>
+      <div class="rw">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <div class="tx"><div class="t1">Key preview popup</div></div>
+        <div class="tog on"></div>
+      </div>
+      <div class="rw">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4"/></svg></div>
+        <div class="tx"><div class="t1">Keyboard height</div></div>
+        <div class="slider"><div class="fill" style="width:62%"></div><div class="knob" style="left:62%"></div></div>
+      </div>
+      <div class="rw">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="12" y1="4" x2="12" y2="20"/></svg></div>
+        <div class="tx"><div class="t1">Split keyboard</div><div class="t2">Splits the keyboard when unfolded &middot; default on</div></div>
+        <div class="tog on"></div>
+      </div>
+      <div class="rw">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4"/></svg></div>
+        <div class="tx"><div class="t1">Split width</div><div class="t2">Center gap &middot; live preview when unfolded</div></div>
+        <div class="slider"><div class="fill" style="width:48%"></div><div class="knob" style="left:48%"></div></div>
+      </div>
+    </div>
+    <div class="sect">PRESETS</div>
+    <div class="card">
+      <div class="rw"><div class="dot" style="background:#3b82f6"></div><div class="tx"><div class="t1">Coding</div><div class="t2">Termux &middot; code editors</div></div><div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div></div>
+      <div class="rw"><div class="dot" style="background:#e0569f"></div><div class="tx"><div class="t1">Personal</div><div class="t2">Messages &middot; social</div></div><div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div></div>
+      <div class="rw"><div class="dot" style="background:#00d4ff"></div><div class="tx"><div class="t1">General</div><div class="t2">Default fallback</div></div><div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div></div>
+      <div class="rw"><div class="ic" style="color:#00d4ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div><div class="tx"><div class="t1" style="color:#00d4ff">Manage presets</div></div><div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div></div>
+    </div>
+  </div>
+</body>
+</html>

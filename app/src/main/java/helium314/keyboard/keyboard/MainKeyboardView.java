@@ -376,7 +376,8 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         locatePreviewPlacerView();
         getLocationInWindow(mOriginCoords);
         mKeyPreviewChoreographer.placeAndShowKeyPreview(key, getKeyboard().mIconsSet, getKeyDrawParams(),
-                KeyboardSwitcher.getInstance().getWrapperView().getWidth(), mOriginCoords, mDrawingPreviewPlacerView);
+                KeyboardSwitcher.getInstance().getWrapperView().getWidth(), mOriginCoords, mDrawingPreviewPlacerView,
+                getKeyboard().mMostCommonKeyWidth, getKeyboard().mMostCommonKeyHeight);
     }
 
     private void dismissKeyPreviewWithoutDelay(@NonNull final Key key) {

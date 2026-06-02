@@ -850,6 +850,11 @@ public class Key implements Comparable<Key> {
         mPressed = false;
     }
 
+    /** LANboard: pressed state, read by the GlassKeyRenderer (§6.7) for the depress + press-glint. */
+    public final boolean isPressed() {
+        return mPressed;
+    }
+
     public final boolean isEnabled() {
         return mEnabled;
     }

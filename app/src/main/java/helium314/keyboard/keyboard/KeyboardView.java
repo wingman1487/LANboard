@@ -36,6 +36,7 @@ import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.common.Colors;
 import helium314.keyboard.latin.common.Constants;
 import helium314.keyboard.latin.common.StringUtilsKt;
+import helium314.keyboard.latin.lanboard.GlassKeyRenderer;
 import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.suggestions.MoreSuggestions;
 import helium314.keyboard.latin.suggestions.MoreSuggestionsView;
@@ -65,6 +66,8 @@ public class KeyboardView extends View {
     private final Rect mKeyBackgroundPadding = new Rect();
     private static final float KET_TEXT_SHADOW_RADIUS_DISABLED = -1.0f;
     private final Colors mColors;
+    /** LANboard: lazily created when the active theme is the glass LANboard Dark colorset (§6.7) */
+    private GlassKeyRenderer mGlassRenderer;
     private float mKeyScaleForText;
     protected float mFontSizeMultiplier;
 
@@ -184,6 +187,7 @@ public class KeyboardView extends View {
         }
 
         mKeyboard = keyboard;
+        if (mGlassRenderer != null) mGlassRenderer.reset(); // drop glint state tied to the old key set
         mKeyScaleForText = (float) Math.sqrt(1 / Settings.getValues().mKeyboardHeightScale);
         int scale = Math.min(2 * keyboard.mMostCommonKeyWidth, keyboard.mMostCommonKeyHeight - keyboard.mVerticalGap);
         int scaledKeySize = (int) (scale * mKeyScaleForText);
@@ -350,6 +354,16 @@ public class KeyboardView extends View {
     // Draw key background.
     protected void onDrawKeyBackground(@NonNull final Key key, @NonNull final Canvas canvas,
             @NonNull final Drawable background) {
+        // LANboard glass (§6.7): when the active colorset is the authored LANboard Dark theme,
+        // paint the faux-glass face procedurally instead of the engine's flat tinted drawable.
+        // This covers every KeyboardView descendant — the main grid and the more-keys popup.
+        if (mColors.getGlassKeys()) {
+            if (mGlassRenderer == null) {
+                mGlassRenderer = new GlassKeyRenderer(getResources().getDisplayMetrics().density);
+            }
+            mGlassRenderer.drawKeyBackground(canvas, this, key, key.getDrawWidth(), key.getHeight());
+            return;
+        }
         final int keyWidth = key.getDrawWidth();
         final int keyHeight = key.getHeight();
         final int bgWidth, bgHeight, bgX, bgY;

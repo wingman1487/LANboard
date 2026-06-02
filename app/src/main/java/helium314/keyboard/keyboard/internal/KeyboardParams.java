@@ -65,6 +65,10 @@ public class KeyboardParams {
     public int mDefaultAbsoluteKeyWidth;
     public int mHorizontalGap;
     public int mVerticalGap;
+    /** LANboard: extra compaction applied to the row (vertical) gap only — see usage below.
+     *  Mild reduction so rows stay a touch tighter than columns without collapsing
+     *  (0.4 column * 1.1 ≈ 0.44 effective row gap). */
+    private static final float LANBOARD_VERTICAL_GAP_SCALE = 1.1f;
 
     public int mPopupKeysTemplate;
     public int mMaxPopupKeysKeyboardColumn;
@@ -243,8 +247,11 @@ public class KeyboardParams {
 
             mRelativeHorizontalGap = keyboardAttr.getFraction(
                     R.styleable.Keyboard_horizontalGap, 1, 1, 0) * sv.mKeyGapScale;
+            // LANboard: rows feel airy because the layouts' base vertical gap is large; compact the
+            // row (vertical) gap further without touching the column (horizontal) gap, for a denser
+            // board with bigger key faces (owner feedback). 1.0 would be stock behavior.
             mRelativeVerticalGap = keyboardAttr.getFraction(
-                    R.styleable.Keyboard_verticalGap, 1, 1, 0) * sv.mKeyGapScale;
+                    R.styleable.Keyboard_verticalGap, 1, 1, 0) * sv.mKeyGapScale * LANBOARD_VERTICAL_GAP_SCALE;
             mHorizontalGap = (int) (mRelativeHorizontalGap * width);
             mVerticalGap = (int) (mRelativeVerticalGap * height);
 

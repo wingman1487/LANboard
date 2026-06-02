@@ -42,6 +42,11 @@ interface Colors {
     /** used in parser to decide background of ZWNJ key */
     val hasKeyBorders: Boolean
 
+    /** LANboard: when true, the key grid is painted as faux-glass (§6.7) by the LANboard
+     *  GlassKeyRenderer instead of the engine's flat tinted drawables. Only the authored
+     *  LANboard Dark colorset sets this; every other theme leaves it false and renders as upstream. */
+    val glassKeys: Boolean get() = false
+
     /** use to check whether colors have changed, for colors (in)directly derived from context,
      *  e.g. night mode or potentially changing system colors */
     fun haveColorsChanged(context: Context): Boolean = false
@@ -374,6 +379,7 @@ class DefaultColors (
     private val spaceBarText: Int = keyHintText,
     private val gesture: Int = accent,
     private var keyboardBackground: Drawable? = null,
+    override val glassKeys: Boolean = false,
 ) : Colors {
     private val navBar: Int
     /** brightened or darkened variant of [background], to be used if exact background color would be
