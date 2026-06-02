@@ -14,11 +14,14 @@ import android.graphics.Color
  * read their colors from here so the identity stays consistent.
  *
  * Only the **five named defaults** below are locked by the spec. The broader curated swatch grid
- * shown in the Manage Presets edit screen (8-wide, hue-separated, blocking the reserved status hues
- * + cyan base + purple per §6.2/§13.2) is owned by the preset-management-ui subsystem and is
- * intentionally NOT invented here — it will be authored against that screen's approved design.
+ * shown in the Manage Presets edit screen ([CURATED_SWATCHES]) is now authored here against the
+ * approved Q2-manage-presets-screen.html visual contract (v2.4 return): a 6×2 hue-separated grid that
+ * excludes the reserved status hues + cyan base + purple per §6.2/§13.2.
  */
 object LBPresetPalette {
+
+    /** The permanent fallback preset. Owns cyan, is non-deletable, and has no swatch grid (§6.2/§8.1). */
+    const val GENERAL_NAME = "General"
 
     // Locked default preset colors (§6.2 / §8.1). Cyan is the signature and the SOLE owner of cyan.
     const val CODING_HEX = "#3b82f6"   // blue
@@ -30,6 +33,25 @@ object LBPresetPalette {
     /** General cyan, the universal fallback when a stored/parsed color is missing or malformed. */
     const val GENERAL_CYAN_HEX = GENERAL_HEX
     val GENERAL_CYAN: Int = Color.parseColor(GENERAL_HEX)
+
+    /**
+     * The curated 6×2 swatch grid offered when recoloring a non-General preset, in the exact order of
+     * Q2-manage-presets-screen.html. Cyan, the §13.2 status hues (green-pulse / amber / red), and purple
+     * are deliberately absent — see [RESERVED_HEXES]. The default for a brand-new preset is [CURATED_SWATCHES].first().
+     */
+    val CURATED_SWATCHES: List<String> = listOf(
+        "#3b82f6", "#6366f1", "#14b8a6", "#5b8fb0", "#8090a8", "#e0569f",
+        "#c0567b", "#f472b6", "#f97316", "#e8845c", "#c2855a", "#a3c644",
+    )
+
+    /** Default swatch selected for a new preset (cyan is reserved, so it can't be the new-preset default). */
+    val NEW_PRESET_HEX: String = CURATED_SWATCHES.first()
+
+    /**
+     * Swatches that are also a locked default for one of the seeded presets — the render marks these
+     * with a small notch dot (Coding/Email/Personal/Terminal). General's cyan is not in the grid.
+     */
+    val LOCKED_DEFAULT_HEXES: Set<String> = setOf(CODING_HEX, EMAIL_HEX, PERSONAL_HEX, TERMINAL_HEX)
 
     /** Locked name → default color, used to seed defaults and to migrate color-less stored presets. */
     private val LOCKED_DEFAULTS: Map<String, String> = mapOf(
@@ -47,6 +69,12 @@ object LBPresetPalette {
      */
     val RESERVED_STATUS_HEXES = listOf("#3ddc97", "#f0b429", "#ef4444") // green-pulse, amber, red
     const val RESERVED_CYAN_HEX = GENERAL_HEX // shown but assignable only to General
+
+    /** Every hue the curated grid must never offer: the status channels plus General-only cyan. */
+    val RESERVED_HEXES: List<String> = RESERVED_STATUS_HEXES + GENERAL_HEX
+
+    /** True if [name] is the permanent General preset (case-insensitive). */
+    fun isGeneral(name: String): Boolean = name.equals(GENERAL_NAME, ignoreCase = true)
 
     /** The locked default color hex for a preset name, or General cyan for any other/new preset. */
     fun defaultHexForName(name: String): String =
