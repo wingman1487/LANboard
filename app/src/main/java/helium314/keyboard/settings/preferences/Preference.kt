@@ -28,26 +28,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.lanboard.LBSectionHeader
 import helium314.keyboard.settings.IconOrImage
 import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.previewDark
 
 // partially taken from StreetComplete / SCEE
 
+// LANboard §6.6: cyan-soft uppercase section header above a frosted card (no divider — the card supplies
+// the grouping). Shared header impl in latin/lanboard/LANboardTheme.kt so inherited + native sections match.
 @Composable
 fun PreferenceCategory(
     title: String,
     modifier: Modifier = Modifier,
 ) {
-    Column {
-        HorizontalDivider()
-        Text(
-            text = title,
-            modifier = modifier.padding(top = 12.dp, start = 16.dp, end = 8.dp, bottom = 8.dp),
-            color = MaterialTheme.colorScheme.secondary,
-            style = MaterialTheme.typography.titleSmall
-        )
-    }
+    LBSectionHeader(title = title, modifier = modifier)
 }
 
 @Composable

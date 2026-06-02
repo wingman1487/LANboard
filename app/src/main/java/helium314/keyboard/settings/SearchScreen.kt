@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -21,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
@@ -49,6 +52,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.lanboard.FrostedCard
+import helium314.keyboard.latin.lanboard.LBColors
 import helium314.keyboard.latin.utils.BackButton
 import helium314.keyboard.latin.utils.CloseIcon
 import helium314.keyboard.latin.utils.SearchIcon
@@ -70,20 +75,28 @@ fun SearchSettingsScreen(
                 Scaffold(
                     contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
                 ) { innerPadding ->
+                    // LANboard §6.6: group each PreferenceCategory's rows into a restrained frosted card.
+                    // Ints in `settings` are category-header string resources; everything else is a pref key.
+                    // Null entries are dropped (HeliBoard used them only for an unreliable appear animation —
+                    // see the original LazyColumn note below). Style only; pref logic is untouched.
+                    val groups = groupSettings(settings)
                     Column(
                         Modifier.verticalScroll(rememberScrollState()).then(Modifier.padding(innerPadding))
                     ) {
-                        settings.forEach {
-                            if (it is Int) {
-                                PreferenceCategory(stringResource(it))
-                            } else {
-                                // this only animates appearing prefs
-                                // a solution would be using a list(visible to key)
-                                AnimatedVisibility(visible = it != null) {
-                                    if (it != null)
-                                        SettingsActivity.settingsContainer[it]?.Preference()
+                        groups.forEach { group ->
+                            if (group.headerRes != null)
+                                PreferenceCategory(stringResource(group.headerRes))
+                            FrostedCard(Modifier.padding(horizontal = 12.dp)) {
+                                group.items.forEachIndexed { index, key ->
+                                    if (index > 0)
+                                        HorizontalDivider(
+                                            thickness = 0.5.dp,
+                                            color = LBColors.RowDivider
+                                        )
+                                    SettingsActivity.settingsContainer[key]?.Preference()
                                 }
                             }
+                            Spacer(Modifier.height(10.dp))
                         }
                     }
                     // lazyColumn has janky scroll for a while (not sure why compose gets smoother after a while)
@@ -210,6 +223,36 @@ fun <T: Any?> SearchScreen(
             }
         }
     }
+}
+
+/** A frosted-card group (§6.6): an optional cyan-soft header res + the pref keys rendered as its rows. */
+private class SettingsGroup(val headerRes: Int?, val items: List<Any>)
+
+/**
+ * Split a HeliBoard `settings` list (Int header resources interleaved with pref keys, plus nullable
+ * gaps) into [SettingsGroup]s — one frosted card per category. Leading rows before the first header
+ * become a headerless card; empty categories are dropped so no blank card is drawn.
+ */
+private fun groupSettings(settings: List<Any?>): List<SettingsGroup> {
+    val groups = mutableListOf<SettingsGroup>()
+    var header: Int? = null
+    var rows = mutableListOf<Any>()
+    fun flush() {
+        if (rows.isNotEmpty()) groups.add(SettingsGroup(header, rows))
+    }
+    settings.forEach { entry ->
+        when (entry) {
+            null -> {} // dropped (was only an unreliable appear-animation hook upstream)
+            is Int -> {
+                flush()
+                header = entry
+                rows = mutableListOf()
+            }
+            else -> rows.add(entry)
+        }
+    }
+    flush()
+    return groups
 }
 
 // from StreetComplete
