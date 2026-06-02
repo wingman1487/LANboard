@@ -44,13 +44,15 @@ class GlassKeyRenderer(private val density: Float) {
     private fun dp(v: Float) = v * density
 
     // fixed geometry (dp); cap height / inner-shade depth scale with key height (CSS uses %)
-    private val inset = dp(2.5f)           // gap between panes (CSS row gap ~5px)
+    // keep the inset minimal — the engine already spaces keys; extra inset shrinks the glass pane
+    // and reads as too much gap (big-thumb feedback). Just enough to keep panes from touching.
+    private val inset = dp(0.5f)
     private val radius = dp(9f)            // .gk border-radius: 9px
     private val topEdge = dp(1.5f)         // inner top highlight (border-top + inset 0 1px 0)
-    private val bottomEdge = dp(2f)        // .gk border-bottom: 2px solid rgba(0,0,0,.5)
-    private val sideEdge = dp(1f)          // .gk border 1px rgba(255,255,255,.10)
-    private val liftRadius = dp(6f)        // box-shadow 0 3px 6px
-    private val liftDy = dp(3f)
+    private val bottomRim = dp(2f)         // lit bottom edge so the key doesn't melt into the bg
+    private val borderWidth = dp(1f)       // .gk border 1px (cyan on command keys — what makes glass "peel")
+    private val liftRadius = dp(8f)        // stronger drop shadow so keys lift off the bg (not "sitting")
+    private val liftDy = dp(4f)
     private val pressShift = dp(2f)        // .pressed transform: translateY(2px)
 
     private val glintStart = HashMap<Key, Long>()
@@ -66,9 +68,11 @@ class GlassKeyRenderer(private val density: Float) {
     )
 
     private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val pressPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val glintPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val clipPath = Path()
+    private val borderRect = RectF()
     private val glintPath = Path()
 
     fun drawKeyBackground(canvas: Canvas, view: KeyboardView, key: Key, width: Int, height: Int) {
@@ -97,14 +101,21 @@ class GlassKeyRenderer(private val density: Float) {
         canvas.drawRect(g.bottomRect, g.bottomShade)
         // 4. domed specular cap across the top (::before)
         canvas.drawPath(g.capPath, g.cap)
-        // 5. inner top highlight edge + side edges + bottom thickness edge
+        // 5. crisp 1px border outline (.gk border) — cyan on command keys, faint white on neutral;
+        //    this edge is what makes the panes read as raised glass ("peeling"). Inset by half the
+        //    stroke so the full 1px sits inside the rounded face.
+        borderPaint.strokeWidth = borderWidth
+        borderPaint.color = if (face == Face.CYAN) BORDER_CY else BORDER
+        val h = borderWidth / 2f
+        borderRect.set(rect.left + h, rect.top + h, rect.right - h, rect.bottom - h)
+        canvas.drawRoundRect(borderRect, radius, radius, borderPaint)
+        // brighter top edge (border-top-color)
         edgePaint.color = if (face == Face.CYAN) TOP_EDGE_CY else TOP_EDGE
         canvas.drawRect(rect.left, rect.top, rect.right, rect.top + topEdge, edgePaint)
-        edgePaint.color = SIDE_EDGE
-        canvas.drawRect(rect.left, rect.top, rect.left + sideEdge, rect.bottom, edgePaint)
-        canvas.drawRect(rect.right - sideEdge, rect.top, rect.right, rect.bottom, edgePaint)
-        edgePaint.color = BOTTOM_EDGE
-        canvas.drawRect(rect.left, rect.bottom - bottomEdge, rect.right, rect.bottom, edgePaint)
+        // lit bottom rim — a defined glass edge so the bottom doesn't melt into the dark bg.
+        // bright cyan on command keys, soft light on neutral keys (big-thumb visibility feedback).
+        edgePaint.color = if (face == Face.CYAN) BOTTOM_RIM_CY else BOTTOM_RIM
+        canvas.drawRect(rect.left, rect.bottom - bottomRim, rect.right, rect.bottom, edgePaint)
 
         // 6. pressed brightness pop (filter: brightness(1.15))
         if (pressed) {
@@ -218,14 +229,75 @@ class GlassKeyRenderer(private val density: Float) {
 
     companion object {
         private const val GLINT_MS = 420L
-        private val LIFT = argb(0.50f, 0, 0, 0)             // 0 3px 6px rgba(0,0,0,0.5)
+        private val LIFT = argb(0.60f, 0, 0, 0)             // drop shadow under the key
         private val TOP_EDGE = argb(0.30f, 255, 255, 255)   // inset 0 1px 0 rgba(255,255,255,0.30)
-        private val TOP_EDGE_CY = argb(0.40f, 0, 212, 255)  // cyan inset top rgba(0,212,255,0.4)
-        private val SIDE_EDGE = argb(0.10f, 255, 255, 255)  // border 1px rgba(255,255,255,0.10)
-        private val BOTTOM_EDGE = argb(0.50f, 0, 0, 0)      // border-bottom 2px rgba(0,0,0,0.5)
+        private val TOP_EDGE_CY = argb(0.50f, 0, 212, 255)  // cyan border-top-color rgba(0,212,255,0.5)
+        private val BORDER = argb(0.12f, 255, 255, 255)     // neutral border rgba(255,255,255,0.12)
+        private val BORDER_CY = argb(0.30f, 0, 212, 255)    // cyan key border — the glassy edge
+        private val BOTTOM_RIM = argb(0.22f, 255, 255, 255) // lit bottom rim on neutral keys
+        private val BOTTOM_RIM_CY = argb(0.55f, 0, 212, 255)// bright cyan bottom rim on command keys
         private val PRESS_POP = argb(0.13f, 255, 255, 255)  // ≈ brightness(1.15)
         private val GLINT = argb(0.40f, 255, 255, 255)      // rgba(255,255,255,0.40)
 
         private fun argb(a: Float, r: Int, g: Int, b: Int) = Color.argb((a * 255).toInt(), r, g, b)
+
+        /**
+         * Paint the tap-preview popup as an EXACT copy of a seated/more-keys NEUTRAL glass key, so it
+         * mirrors the more-keys popup keys (the look the owner approved) — same face gradient, domed
+         * cap, edges, border, bottom rim, and lift shadow as the instance renderer's neutral path
+         * (no press depress, no glint). Values here are kept in lockstep with the instance geometry
+         * (inset/radius/edges) and the neutral face/cap/edge constants. Paints are built per-call.
+         */
+        @JvmStatic
+        fun drawPreviewTile(canvas: Canvas, width: Int, height: Int, density: Float) {
+            if (width <= 0 || height <= 0) return
+            fun d(v: Float) = v * density
+            val inset = d(0.5f); val radius = d(9f)
+            val rect = RectF(inset, inset, width - inset, height - inset)
+            val rw = rect.width(); val rh = rect.height()
+
+            // lift shadow + neutral convex face (same as a seated neutral key)
+            val face = Paint(Paint.ANTI_ALIAS_FLAG)
+            face.shader = LinearGradient(
+                0f, rect.top, 0f, rect.bottom,
+                intArrayOf(0xff39434f.toInt(), 0xff232b34.toInt(), 0xff161c23.toInt()),
+                floatArrayOf(0f, 0.46f, 1f), Shader.TileMode.CLAMP
+            )
+            face.setShadowLayer(d(8f), 0f, d(4f), LIFT)
+            canvas.drawRoundRect(rect, radius, radius, face)
+
+            canvas.save()
+            canvas.clipPath(Path().apply { addRoundRect(rect, radius, radius, Path.Direction.CW) })
+            // inner bottom shade (side-wall darkening)
+            val shadeTop = rect.bottom - rh * 0.32f
+            val shade = Paint(Paint.ANTI_ALIAS_FLAG)
+            shade.shader = LinearGradient(0f, shadeTop, 0f, rect.bottom,
+                intArrayOf(Color.TRANSPARENT, argb(0.40f, 0, 0, 0)), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+            canvas.drawRect(rect.left, shadeTop, rect.right, rect.bottom, shade)
+            // domed specular cap: inset 7%, height 42%, white 0.24
+            val capH = rh * 0.42f
+            val capRect = RectF(rect.left + rw * 0.07f, rect.top + d(1.5f), rect.right - rw * 0.07f, rect.top + d(1.5f) + capH)
+            val capTop = argb(0.24f, 255, 255, 255)
+            val cap = Paint(Paint.ANTI_ALIAS_FLAG)
+            cap.shader = LinearGradient(0f, capRect.top, 0f, capRect.bottom,
+                intArrayOf(capTop, capTop and 0x00ffffff), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+            val tr = d(8f); val br = capH * 0.6f
+            canvas.drawPath(Path().apply {
+                addRoundRect(capRect, floatArrayOf(tr, tr, tr, tr, br, br, br, br), Path.Direction.CW)
+            }, cap)
+            // bright top edge + soft bottom rim (neutral)
+            val e = Paint(Paint.ANTI_ALIAS_FLAG)
+            e.color = TOP_EDGE
+            canvas.drawRect(rect.left, rect.top, rect.right, rect.top + d(1.5f), e)
+            e.color = BOTTOM_RIM
+            canvas.drawRect(rect.left, rect.bottom - d(2f), rect.right, rect.bottom, e)
+            canvas.restore()
+
+            // 1px neutral border outline
+            val b = Paint(Paint.ANTI_ALIAS_FLAG)
+            b.style = Paint.Style.STROKE; b.strokeWidth = d(1f); b.color = BORDER
+            val h = d(0.5f)
+            canvas.drawRoundRect(RectF(rect.left + h, rect.top + h, rect.right - h, rect.bottom - h), radius, radius, b)
+        }
     }
 }

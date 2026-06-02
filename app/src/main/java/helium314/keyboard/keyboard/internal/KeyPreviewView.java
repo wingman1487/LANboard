@@ -7,6 +7,8 @@
 package helium314.keyboard.keyboard.internal;
 
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.text.TextPaint;
@@ -20,6 +22,7 @@ import helium314.keyboard.keyboard.Key;
 import helium314.keyboard.keyboard.KeyboardTypeface;
 import helium314.keyboard.latin.R;
 import helium314.keyboard.latin.common.StringUtilsKt;
+import helium314.keyboard.latin.lanboard.GlassKeyRenderer;
 import helium314.keyboard.latin.settings.Settings;
 
 import java.util.HashSet;
@@ -33,6 +36,15 @@ public class KeyPreviewView extends TextView {
 
     private final Rect mBackgroundPadding = new Rect();
     private static final HashSet<String> sNoScaleXTextSet = new HashSet<>();
+    /** LANboard (§6.7): the keyboard's common key size — the glass tap-preview is drawn at this size
+     *  so it matches the more-keys popup keys exactly. Set before measure by the choreographer. */
+    private int mGlassKeyWidth;
+    private int mGlassKeyHeight;
+
+    public void setGlassKeySize(final int width, final int height) {
+        mGlassKeyWidth = width;
+        mGlassKeyHeight = height;
+    }
 
     public KeyPreviewView(final Context context, final AttributeSet attrs) {
         this(context, attrs, 0);
@@ -41,6 +53,43 @@ public class KeyPreviewView extends TextView {
     public KeyPreviewView(final Context context, final AttributeSet attrs, final int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         setGravity(Gravity.CENTER);
+    }
+
+    @Override
+    protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        // LANboard (§6.7): the tap-preview is a key-sized glass tile (matching a more-keys popup key),
+        // so the view itself is the key's exact size. Padding is left stock so the more-keys popup's
+        // vertical offset (derived from padding) is unchanged; KeyPreviewDrawParams.setGeometry guards
+        // the resulting (possibly non-positive) visible height so the more-keys popup can't crash.
+        if (Settings.getValues().mColors.getGlassKeys() && mGlassKeyWidth > 0 && mGlassKeyHeight > 0) {
+            setMeasuredDimension(mGlassKeyWidth, mGlassKeyHeight);
+        }
+    }
+
+    @Override
+    protected void onDraw(final Canvas canvas) {
+        // LANboard (§6.7): draw the key-sized glass tile filling the view, with the glyph centered.
+        if (Settings.getValues().mColors.getGlassKeys() && mGlassKeyWidth > 0 && mGlassKeyHeight > 0) {
+            GlassKeyRenderer.drawPreviewTile(canvas, getWidth(), getHeight(),
+                    getResources().getDisplayMetrics().density);
+            final CharSequence label = getText();
+            if (label != null && label.length() > 0) {
+                final TextPaint paint = getPaint();
+                paint.setColor(getCurrentTextColor());
+                final Paint.Align prevAlign = paint.getTextAlign();
+                final float prevSize = paint.getTextSize();
+                paint.setTextAlign(Paint.Align.CENTER);
+                paint.setTextSize(getHeight() * 0.5f); // glyph sized to the key-sized tile
+                final float cx = getWidth() / 2f;
+                final float cy = getHeight() / 2f - (paint.descent() + paint.ascent()) / 2f;
+                canvas.drawText(label.toString(), cx, cy, paint);
+                paint.setTextAlign(prevAlign);
+                paint.setTextSize(prevSize);
+            }
+            return;
+        }
+        super.onDraw(canvas);
     }
 
     public void setPreviewVisual(final Key key, final KeyboardIconsSet iconsSet, final KeyDrawParams drawParams) {
@@ -56,6 +105,7 @@ public class KeyPreviewView extends TextView {
         setTextSize(TypedValue.COMPLEX_UNIT_PX, key.selectPreviewTextSize(drawParams)
                 * Settings.getValues().mFontSizeMultiplier);
         KeyboardTypeface.applyToTextView(this, key.getPreviewLabel(), key.selectPreviewTypeface(drawParams));
+        // mGlassKeyWidth/Height are set by the choreographer (setGlassKeySize) to the common key size.
         // TODO Should take care of temporaryShiftLabel here.
         setTextAndScaleX(key.getPreviewLabel());
     }

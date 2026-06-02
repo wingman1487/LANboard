@@ -87,7 +87,9 @@ object Defaults {
     @JvmField
     val PREF_SPLIT_SPACER_SCALE = Array(4) { DEFAULT_SIZE_SCALE }
     @JvmField
-    val PREF_KEYBOARD_HEIGHT_SCALE = Array(4) { DEFAULT_SIZE_SCALE }
+    // LANboard keys: stock height, widened via a tight column gap — wide, not stretched-tall.
+    // Still user-adjustable in Settings.
+    val PREF_KEYBOARD_HEIGHT_SCALE = Array(4) { 1.0f }
     @JvmField
     val PREF_BOTTOM_ROW_SCALE = Array(4) { DEFAULT_SIZE_SCALE }
     @JvmField
@@ -96,7 +98,9 @@ object Defaults {
     @JvmField
     val PREF_SIDE_PADDING_SCALE = Array(8) { 0f }
     @JvmField
-    val PREF_KEY_GAP_SCALE = Array(4) { DEFAULT_SIZE_SCALE }
+    // moderate default column gap (~0.4) — wide keys with a little breathing room. Scales both
+    // axes; the row gap is further shaped by LANBOARD_VERTICAL_GAP_SCALE in KeyboardParams.
+    val PREF_KEY_GAP_SCALE = Array(4) { 0.4f }
     const val PREF_FONT_SCALE = DEFAULT_SIZE_SCALE
     const val PREF_EMOJI_FONT_SCALE = DEFAULT_SIZE_SCALE
     const val PREF_EMOJI_KEY_FIT = true

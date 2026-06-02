@@ -10,6 +10,7 @@ import android.content.res.TypedArray;
 import android.view.View;
 
 import helium314.keyboard.latin.R;
+import helium314.keyboard.latin.settings.Settings;
 
 public final class KeyPreviewDrawParams {
     // XML attributes of {@link MainKeyboardView}.
@@ -62,8 +63,18 @@ public final class KeyPreviewDrawParams {
         final int previewHeight = previewTextView.getMeasuredHeight();
         // The width and height of visible part of the key preview background. The content marker
         // of the background 9-patch have to cover the visible part of the background.
-        mVisibleWidth = previewWidth - previewTextView.getPaddingLeft() - previewTextView.getPaddingRight();
-        mVisibleHeight = previewHeight - previewTextView.getPaddingTop() - previewTextView.getPaddingBottom();
+        if (Settings.getValues().mColors.getGlassKeys()) {
+            // LANboard (§6.7): the glass tap-preview is key-sized, so use its FULL measured size as
+            // the visible size. This makes the single-character more-keys popup match the key-sized
+            // multiple-button popup (instead of shrinking by the background padding, which looked too
+            // small) and avoids the non-positive height that crashed ProximityInfo. The visible
+            // offset below is left padding-derived (stock) so the more-keys popup position is unchanged.
+            mVisibleWidth = previewWidth;
+            mVisibleHeight = previewHeight;
+        } else {
+            mVisibleWidth = previewWidth - previewTextView.getPaddingLeft() - previewTextView.getPaddingRight();
+            mVisibleHeight = previewHeight - previewTextView.getPaddingTop() - previewTextView.getPaddingBottom();
+        }
         // The distance between the top edge of the parent key and the bottom of the visible part
         // of the key preview background.
         setVisibleOffset(-previewTextView.getPaddingBottom() / 2);

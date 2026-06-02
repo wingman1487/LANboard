@@ -76,8 +76,11 @@ public final class KeyPreviewChoreographer {
 
     public void placeAndShowKeyPreview(final Key key, final KeyboardIconsSet iconsSet,
             final KeyDrawParams drawParams, final int fullKeyboardViewWidth, final int[] keyboardOrigin,
-            final ViewGroup placerView) {
+            final ViewGroup placerView, final int commonKeyWidth, final int commonKeyHeight) {
         final KeyPreviewView keyPreviewView = getKeyPreviewView(key, placerView);
+        // LANboard (§6.7): size the glass tap-preview to the keyboard's common key size so it matches
+        // the more-keys popup keys exactly (those are what the owner approved).
+        keyPreviewView.setGlassKeySize(commonKeyWidth, commonKeyHeight);
         placeKeyPreview(key, keyPreviewView, iconsSet, drawParams, fullKeyboardViewWidth, keyboardOrigin);
         showKeyPreview(key, keyPreviewView);
     }
@@ -112,8 +115,17 @@ public final class KeyPreviewChoreographer {
 
         // The key preview is placed vertically above the top edge of the parent key with an
         // arbitrary offset.
-        final int previewY = key.getY() - previewHeight + key.getHeight() - mParams.mPreviewOffset
-                + CoordinateUtils.y(originCoords);
+        // LANboard (§6.7): the glass tap-preview is key-sized, so the stock formula would place it
+        // directly over the key (hidden under the finger). Lift it fully above the key with a small
+        // gap. This only moves the tap preview — the more-keys popup uses getVisibleOffset() instead.
+        final int previewY;
+        if (Settings.getValues().mColors.getGlassKeys()) {
+            final int gap = (int) (key.getHeight() * 0.25f);
+            previewY = key.getY() - previewHeight - gap + CoordinateUtils.y(originCoords);
+        } else {
+            previewY = key.getY() - previewHeight + key.getHeight() - mParams.mPreviewOffset
+                    + CoordinateUtils.y(originCoords);
+        }
 
         ViewLayoutUtils.placeViewAt(keyPreviewView, previewX, previewY, previewWidth, previewHeight);
         keyPreviewView.setPivotX(previewWidth / 2.0f);

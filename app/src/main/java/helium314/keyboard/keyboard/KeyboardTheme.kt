@@ -163,7 +163,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                     themeStyle,
                     hasBorders,
                     "#00d4ff".toColorInt(),  // accent — cyan signature (§6.1)
-                    "#0a0d10".toColorInt(),  // background — page deepest (§6.1)
+                    "#131820".toColorInt(),  // keyboard background — the §6.7 render's "light black" (.kb), so glass keys pop
                     "#232b34".toColorInt(),  // neutral key face — mid of the §6.1 neutral glass gradient
                     "#143039".toColorInt(),  // functional/command key face — mid of the §6.1 cyan glass gradient
                     "#232b34".toColorInt(),  // spacebar — neutral glass like character keys
