@@ -43,6 +43,23 @@ class MicRingView @JvmOverloads constructor(
     private var breathT = (Math.random() * 3.4).toFloat()
     private var maxSpikeFrac = 0.35f
 
+    /** Active preset color (§6.2): the listening spike-TIP color. The cyan baseline circle and the
+     *  ring STROKE (the server-state channel) are never tinted by this. */
+    var presetColor: Int = LBPresetPalette.GENERAL_CYAN
+        private set
+    /** General keeps the v1 single-gradient cyan→electric-blue→deep-blue look (§6.2); every other
+     *  preset renders the per-spike radial gradient (cyan base → preset tip). */
+    var isGeneralPreset: Boolean = true
+        private set
+
+    /** Set the active preset's spike-tip color and whether it is the General preset. */
+    fun setActivePreset(colorInt: Int, isGeneral: Boolean) {
+        if (colorInt == presetColor && isGeneral == isGeneralPreset) return
+        presetColor = colorInt
+        isGeneralPreset = isGeneral
+        if (state == State.LISTENING) invalidate()
+    }
+
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.BUTT
@@ -157,13 +174,19 @@ class MicRingView @JvmOverloads constructor(
     }
 
     private fun drawListening(canvas: Canvas) {
-        // Baseline circle
+        // Baseline circle — always cyan, the signature (§6.2). Independent of preset color.
         strokePaint.color = android.graphics.Color.argb(128, 0, 212, 255)
         strokePaint.strokeWidth = lineWidth
         canvas.drawCircle(cx, cy, baseRadius, strokePaint)
 
-        // Spike-modulated overlay
         val maxSpikeOut = baseRadius * maxSpikeFrac
+        if (isGeneralPreset) drawListeningGeneral(canvas, maxSpikeOut)
+        else drawListeningPerSpike(canvas, maxSpikeOut)
+    }
+
+    /** General preset (§6.2): the v1 look — one closed path over all samples, stroked with a single
+     *  canvas-wide cyan → electric-blue → deep-blue gradient. */
+    private fun drawListeningGeneral(canvas: Canvas, maxSpikeOut: Float) {
         spikePath.reset()
         for (i in 0 until numSamples) {
             val angle = (i.toFloat() / numSamples) * Math.PI.toFloat() * 2f - Math.PI.toFloat() / 2f
@@ -182,8 +205,38 @@ class MicRingView @JvmOverloads constructor(
         )
         spikePathPaint.shader = grad
         spikePathPaint.strokeWidth = lineWidth
+        spikePathPaint.strokeCap = Paint.Cap.BUTT
         canvas.drawPath(spikePath, spikePathPaint)
         spikePathPaint.shader = null
+    }
+
+    /** Non-General presets (§6.2, Approach B): one radial line per active spike, base on the cyan
+     *  perimeter → tip in the preset color, so the active preset color reads at the spike tips while
+     *  cyan stays the baseline. Inactive samples are skipped to keep the per-frame gradient count low
+     *  (30fps budget, §13.2). No shadow pass — matches the v1 profile; revisit if device QA wants glow. */
+    private fun drawListeningPerSpike(canvas: Canvas, maxSpikeOut: Float) {
+        spikePathPaint.strokeWidth = lineWidth
+        spikePathPaint.strokeCap = Paint.Cap.ROUND
+        for (i in 0 until numSamples) {
+            val s = spikes[i]
+            if (s < 0.02f) continue
+            val angle = (i.toFloat() / numSamples) * Math.PI.toFloat() * 2f - Math.PI.toFloat() / 2f
+            val ca = cos(angle.toDouble()).toFloat()
+            val sa = sin(angle.toDouble()).toFloat()
+            val baseX = cx + ca * baseRadius
+            val baseY = cy + sa * baseRadius
+            val tipR = baseRadius + s * maxSpikeOut
+            val tipX = cx + ca * tipR
+            val tipY = cy + sa * tipR
+            spikePathPaint.shader = LinearGradient(
+                baseX, baseY, tipX, tipY,
+                colorCyan, presetColor,
+                Shader.TileMode.CLAMP
+            )
+            canvas.drawLine(baseX, baseY, tipX, tipY, spikePathPaint)
+        }
+        spikePathPaint.shader = null
+        spikePathPaint.strokeCap = Paint.Cap.BUTT
     }
 
     private fun drawTranscribing(canvas: Canvas) {
