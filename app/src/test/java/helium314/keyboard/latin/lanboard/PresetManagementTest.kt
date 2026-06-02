@@ -67,6 +67,19 @@ class PresetManagementTest {
         assertEquals("desk", mgr().getPresets().single().description)
     }
 
+    @Test fun `presets stored before subtitles existed backfill the seeded subtitle`() {
+        // simulate a pre-description stored payload (no "description" key) — as on a device upgraded
+        // from an earlier build that already had presets in SharedPreferences
+        context.getSharedPreferences("lanboard_presets", Context.MODE_PRIVATE).edit().putString(
+            "presets",
+            """[{"name":"Coding","promptText":"p","isDefault":true,"colorHex":"#3b82f6"},
+                {"name":"MyCustom","promptText":"p","isDefault":false,"colorHex":"#3b82f6"}]""".trimIndent()
+        ).apply()
+        val byName = mgr().getPresets().associateBy { it.name }
+        assertEquals("Termux · code editors", byName["Coding"]?.description)
+        assertEquals("", byName["MyCustom"]?.description) // user preset stays subtitle-less
+    }
+
     @Test fun `General sorts last on a fresh install`() {
         assertEquals("General", mgr().getPresets().last().name)
     }

@@ -53,7 +53,7 @@ class VoicePresetManager(context: Context) {
                     "refactor, deploy, merge, commit, pull request, code review",
                 isDefault = true,
                 colorHex = LBPresetPalette.CODING_HEX,
-                description = "Termux · code editors"
+                description = LBPresetPalette.defaultDescriptionForName("Coding")
             ),
             Preset(
                 "Email",
@@ -62,7 +62,7 @@ class VoicePresetManager(context: Context) {
                     "I hope this email finds you well, Looking forward to hearing from you",
                 isDefault = true,
                 colorHex = LBPresetPalette.EMAIL_HEX,
-                description = "Professional correspondence"
+                description = LBPresetPalette.defaultDescriptionForName("Email")
             ),
             Preset(
                 "Personal",
@@ -70,7 +70,7 @@ class VoicePresetManager(context: Context) {
                     "Hey, what's up, gonna, wanna, yeah, nah, cool, awesome, lol",
                 isDefault = true,
                 colorHex = LBPresetPalette.PERSONAL_HEX,
-                description = "Messages · social"
+                description = LBPresetPalette.defaultDescriptionForName("Personal")
             ),
             Preset(
                 "Terminal",
@@ -79,14 +79,14 @@ class VoicePresetManager(context: Context) {
                     "chmod, chown, ls, cd, mkdir, rm, cp, mv, cat, less, tail, head",
                 isDefault = true,
                 colorHex = LBPresetPalette.TERMINAL_HEX,
-                description = "Shell · git · docker"
+                description = LBPresetPalette.defaultDescriptionForName("Terminal")
             ),
             Preset(
                 "General",
                 "",
                 isDefault = true,
                 colorHex = LBPresetPalette.GENERAL_HEX,
-                description = "Default fallback · the signature"
+                description = LBPresetPalette.defaultDescriptionForName("General")
             )
         )
         savePresets(defaults)
@@ -107,7 +107,9 @@ class VoicePresetManager(context: Context) {
                     // back-compat: presets stored before colors existed have no "colorHex" key —
                     // fall back to the locked default for that name (or General cyan for others)
                     colorHex = obj.optString("colorHex", LBPresetPalette.defaultHexForName(name)),
-                    description = obj.optString("description", "")
+                    // back-compat: presets stored before subtitles existed have no "description" key —
+                    // backfill the seeded subtitle for the locked default names (or "" for user presets)
+                    description = obj.optString("description", LBPresetPalette.defaultDescriptionForName(name))
                 )
             }
         } catch (e: Exception) {
