@@ -12,6 +12,16 @@
     android:layout_gravity="bottom"
     android:orientation="vertical" >
 
+    <!-- LANboard §7.4: delayed-transcription banner — floating glass row above the top strip,
+         hidden until a queued recording transcribes (DelayedTranscriptionBanner). -->
+    <include
+        layout="@layout/lanboard_transcription_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="4dp"
+        android:layout_marginRight="4dp"
+        android:layout_marginBottom="8dp" />
+
     <include
         android:id="@+id/strip_container"
         layout="@layout/strip_container" />

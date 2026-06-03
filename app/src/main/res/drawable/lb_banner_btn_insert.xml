@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- §7.4 banner Insert button — cyan primary (visual contract .btn.ins). -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#4D04222B">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/lb_cyan" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+</ripple>

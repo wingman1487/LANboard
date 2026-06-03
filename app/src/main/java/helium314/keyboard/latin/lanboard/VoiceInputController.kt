@@ -224,6 +224,11 @@ class VoiceInputController(
     fun isServerHealthy(): Boolean = serverHealthy
     fun getPendingCount(): Int = pendingManager.getPendingCount()
 
+    /** §7.4: inserting a delayed transcription from the banner is a successful insertion, so the
+     *  recording enters the §7.5 30-minute post-insertion grace before its local file is removed —
+     *  mirroring the live-commit path's markForDeletion call. */
+    fun markInserted(id: String) = pendingManager.markForDeletion(id)
+
     private fun toast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
