@@ -1233,7 +1233,21 @@ public class LatinIME extends InputMethodService implements
         final int stripHeight = mKeyboardSwitcher.isShowingStripContainer() ? mKeyboardSwitcher.getStripContainer().getHeight() : 0;
         final View terminalRow = mInputView.findViewById(helium314.keyboard.latin.R.id.lb_terminal_row_scroll);
         final int terminalRowHeight = (terminalRow != null && terminalRow.getVisibility() == View.VISIBLE) ? terminalRow.getHeight() : 0;
-        int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - stripHeight - terminalRowHeight;
+        // LANboard §7.4: the delayed-transcription banner is a row above the strip. When visible it adds
+        // to inputHeight, so its height (plus margins) must be subtracted here too — otherwise the
+        // visible/touchable region's top stops at the strip and taps on the banner's Insert/Copy/×
+        // fall through to the app behind it.
+        final View transcriptionBanner = mInputView.findViewById(helium314.keyboard.latin.R.id.lb_transcription_banner);
+        int transcriptionBannerHeight = 0;
+        if (transcriptionBanner != null && transcriptionBanner.getVisibility() == View.VISIBLE) {
+            transcriptionBannerHeight = transcriptionBanner.getHeight();
+            final android.view.ViewGroup.LayoutParams lp = transcriptionBanner.getLayoutParams();
+            if (lp instanceof android.view.ViewGroup.MarginLayoutParams) {
+                final android.view.ViewGroup.MarginLayoutParams mlp = (android.view.ViewGroup.MarginLayoutParams) lp;
+                transcriptionBannerHeight += mlp.topMargin + mlp.bottomMargin;
+            }
+        }
+        int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - stripHeight - terminalRowHeight - transcriptionBannerHeight;
         if (Settings.getValues().mIsFloatingKeyboard)
             visibleTopY = getResources().getDisplayMetrics().heightPixels;
 
