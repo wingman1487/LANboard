@@ -149,11 +149,11 @@ class VoiceInputController(
                     } else {
                         // A failed send is direct evidence the server is unreachable: clear the health
                         // flag so the ring reads UNREACHABLE on the setState(IDLE) below (instead of a
-                        // stale green), and start the in-session poll so the queued recording auto-
-                        // retries the moment the server returns — no keyboard reopen needed (§7.3).
+                        // stale green). The session health monitor (started on input-view open) then
+                        // catches the server's return and drains the queued recording — no keyboard
+                        // reopen needed (§7.3).
                         setServerHealthy(false)
                         toast(if (isSensitiveField) errorMsg else "Saved locally — will retry when server is available")
-                        if (!isSensitiveField) startHealthPolling()
                     }
                 }
                 setState(State.IDLE)
@@ -196,65 +196,62 @@ class VoiceInputController(
 
     fun onInputViewStarted() {
         pendingManager.cleanupExpired()
-        // §7.3 auto-retry: gate the pending-queue drain on the RESULT of this session's health check,
-        // not the stale serverHealthy flag. checkHealth() updates serverHealthy on a background
-        // coroutine, so reading it synchronously right after missed the first keyboard-open after the
-        // server reconnected (the recording only drained on a manual Settings retry). Mirror the
-        // mic-tap path: run the health check and the retry in one coroutine so the retry sees the
-        // fresh result.
-        scope.launch {
-            setServerHealthy(whisperClient.checkHealth(config))
-            if (serverHealthy) {
-                retryPending()
-            } else if (pendingManager.getPendingCount() > 0) {
-                // Server still down but recordings are waiting — poll so they auto-retry in-session.
-                startHealthPolling()
-            }
-        }
+        // Run a session-long health monitor (immediate first check + periodic re-checks). It keeps the
+        // ring honest in BOTH directions without a keyboard reopen — server going down OR coming back —
+        // and drains the pending queue when reachability returns (§7.3 auto-retry; §line-265 background
+        // re-check). The old approach only re-checked on open/mic-tap/failed-send, so a disconnect while
+        // idle went unnoticed until reopen.
+        startHealthMonitor()
     }
 
     fun onInputViewFinished() {
-        stopHealthPolling()
+        stopHealthMonitor()
         if (state == State.LISTENING) discardRecording()
         transcriptionJob?.cancel()
         audioFocusManager.release() // defensive: don't leak focus if torn down mid-transcription
     }
 
     fun release() {
-        stopHealthPolling()
+        stopHealthMonitor()
         audioCaptureManager.release()
         transcriptionJob?.cancel()
         audioFocusManager.release()
     }
 
-    /** Single write point for server reachability: updates the flag, stops the poll once healthy, and
-     *  notifies the listener (the mic ring) so its server-state stroke re-renders on async changes. */
+    /** Single write point for server reachability: updates the flag and notifies the listener (the mic
+     *  ring) so its server-state stroke re-renders on async changes. */
     private fun setServerHealthy(value: Boolean) {
         val changed = value != serverHealthy
         serverHealthy = value
         lastHealthCheck = System.currentTimeMillis()
-        if (value) stopHealthPolling()
         if (changed) listener?.onHealthChanged(value) // on the Main scope; no cross-thread post needed
     }
 
-    /** §7.3 in-session auto-fire (owner-chosen): while the server is unreachable, re-check health on a
-     *  light interval; the moment it returns, green the ring (via [setServerHealthy]) and drain the
-     *  pending queue so the delayed-transcription dot appears without needing a keyboard reopen. */
-    private fun startHealthPolling() {
+    /** Session-long bidirectional health monitor: an immediate check on start, then periodic re-checks
+     *  while the keyboard is up. Keeps the ring honest whether the server goes DOWN or comes back
+     *  (§line-265 background re-check), and on a return to health drains the pending queue so the §7.4
+     *  delayed-transcription dot appears without a keyboard reopen (§7.3). Skips ticks during a
+     *  recording (LISTENING/TRANSCRIBING own the ring then). Stops on input-view finish / release. */
+    private fun startHealthMonitor() {
         if (healthPollJob?.isActive == true) return
         healthPollJob = scope.launch {
-            while (isActive && !serverHealthy) {
-                delay(HEALTH_POLL_INTERVAL_MS)
-                if (whisperClient.checkHealth(config)) {
-                    setServerHealthy(true) // greens the ring + cancels this poll
-                    retryPending()         // surfaces the queued transcription via the banner dot
-                    return@launch
+            var firstTick = true
+            while (isActive) {
+                if (state == State.IDLE) {
+                    val wasHealthy = serverHealthy
+                    val healthy = whisperClient.checkHealth(config)
+                    setServerHealthy(healthy) // re-renders the ring on any change (down OR up)
+                    // Drain the queue when reachability returns, and once on open (firstTick) so a
+                    // recording made while the server was down surfaces as soon as the keyboard shows.
+                    if (healthy && (!wasHealthy || firstTick)) retryPending()
                 }
+                firstTick = false
+                delay(HEALTH_POLL_INTERVAL_MS)
             }
         }
     }
 
-    private fun stopHealthPolling() {
+    private fun stopHealthMonitor() {
         healthPollJob?.cancel()
         healthPollJob = null
     }
