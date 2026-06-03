@@ -70,19 +70,20 @@ class QuickPickerController(
         return true
     }
 
-    /** Forward the moving finger (raw window coords) so the view can arm the pill under it. (Step 4.) */
+    /** Forward the moving finger (raw window coords) so the view arms the pill under it. */
     fun onHover(rawX: Float, rawY: Float) {
         if (!isOpen) return
-        // Step 4: picker.setArmed(picker.hitTest(rawX, rawY))
+        picker.setArmed(picker.hitTest(rawX, rawY))
     }
 
     /**
-     * Finger lifted: resolve to the armed pill (if any), retract, and return the chosen preset name (or
-     * null = no change). (Pill resolution is wired in Step 4; for now the picker just retracts.)
+     * Finger lifted: resolve to the armed pill (if any), retract, and return the chosen preset name — or
+     * null for a no-change release (empty space, the float, the ring, or an immediate release).
      */
     fun resolveOnUp(): String? {
+        val name = picker.armedPresetName()
         close()
-        return null
+        return name
     }
 
     /** Abort with no commit (posture change / cancel). */

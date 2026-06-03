@@ -145,13 +145,38 @@ class QuickPickerView(context: Context) : View(context) {
         invalidate()
     }
 
-    /** Set the armed pill index (or −1). Visual only; the gesture layer drives this in a later step. */
+    /** Set the armed pill index (or −1). */
     fun setArmed(index: Int) {
         if (index != armedIndex) {
             armedIndex = index
             invalidate()
         }
     }
+
+    private val locBuf = IntArray(2)
+
+    /**
+     * Hit-test a forwarded raw window coordinate → the armed pill index, or −1. The hit region for each
+     * pill is its width plus half the inter-pill gap on each side (so regions are contiguous — a sliding
+     * finger always arms exactly one pill), at the full band height (the 30dp pill is only the visual).
+     * The inert float and the util tile are not switch targets, so they never arm.
+     */
+    fun hitTest(rawX: Float, rawY: Float): Int {
+        if (!hasLayout) return -1
+        getLocationInWindow(locBuf)
+        val lx = rawX - locBuf[0]
+        val ly = rawY - locBuf[1]
+        if (ly < bandTop || ly > bandBottom) return -1
+        val halfGap = pillGap / 2f
+        for (i in pillRects.indices) {
+            val r = pillRects[i]
+            if (lx >= r.left - halfGap && lx <= r.right + halfGap) return i
+        }
+        return -1
+    }
+
+    /** The name of the currently-armed pill, or null if none is armed (a no-change release). */
+    fun armedPresetName(): String? = st?.pills?.getOrNull(armedIndex)?.name
 
     /** Lay out float → pills → util right-to-left, packed against the plate's right inset (flex-end). */
     private fun layout() {
