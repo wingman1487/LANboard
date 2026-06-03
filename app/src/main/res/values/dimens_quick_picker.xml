@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  §5.6 quick-preset picker dimensions (v2.5 — render contract quick-picker-overlay.html).
+  Kept out of Kotlin so the picker's chrome tokens match the approved render in one place.
+  NOTE: lb_qp_plate_inset_right is a FALLBACK ONLY — at gesture time the real right inset is derived
+  from the measured lb_mic_ring_container left edge so the plate always stops short of the live ring.
+-->
+<resources>
+    <!-- scrim plate -->
+    <dimen name="lb_qp_plate_inset_left">6dp</dimen>
+    <dimen name="lb_qp_plate_inset_top">5dp</dimen>
+    <dimen name="lb_qp_plate_inset_bottom">5dp</dimen>
+    <dimen name="lb_qp_plate_inset_right">52dp</dimen>
+    <dimen name="lb_qp_plate_radius">12dp</dimen>
+    <dimen name="lb_qp_plate_side_pad">8dp</dimen>
+
+    <!-- alternative pills -->
+    <dimen name="lb_qp_pill_height">30dp</dimen>
+    <dimen name="lb_qp_pill_radius">8dp</dimen>
+    <dimen name="lb_qp_pill_padding">11dp</dimen>
+    <dimen name="lb_qp_pill_max_width">118dp</dimen>
+    <dimen name="lb_qp_pill_gap">7dp</dimen>
+
+    <!-- inert active-preset float (marker, not target) -->
+    <dimen name="lb_qp_float_height">30dp</dimen>
+    <dimen name="lb_qp_float_padding">12dp</dimen>
+    <dimen name="lb_qp_float_radius">8dp</dimen>
+
+    <!-- §6.2 identity dot -->
+    <dimen name="lb_qp_dot_size">13dp</dimen>
+
+    <!-- "…/gear" utility tile -->
+    <dimen name="lb_qp_util_min_width">30dp</dimen>
+    <dimen name="lb_qp_count_radius">6dp</dimen>
+
+    <!-- typography -->
+    <dimen name="lb_qp_pill_text">12.5sp</dimen>
+    <dimen name="lb_qp_count_text">10.5sp</dimen>
+</resources>
