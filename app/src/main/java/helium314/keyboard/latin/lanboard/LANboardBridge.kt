@@ -28,6 +28,7 @@ class LANboardBridge(private val ime: LatinIME) {
     private var micContainer: FrameLayout? = null
     private var terminalRowManager: TerminalRowManager? = null
     private var suggestionStripView: View? = null
+    private var transcriptionBanner: DelayedTranscriptionBanner? = null
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val frameRunner = object : Runnable {
@@ -67,11 +68,9 @@ class LANboardBridge(private val ime: LatinIME) {
             }
 
             override fun onPendingTranscription(id: String, text: String) {
-                android.widget.Toast.makeText(
-                    ime,
-                    "Pending recording transcribed: ${text.take(40)}${if (text.length > 40) "…" else ""}",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
+                // §7.4: surface the delayed transcription in the actionable banner (Insert / Copy / ×)
+                // instead of the v1 non-actionable Toast — focus may be on a different field now.
+                transcriptionBanner?.enqueue(id, text)
             }
         }
     }
@@ -87,6 +86,24 @@ class LANboardBridge(private val ime: LatinIME) {
             voiceController.onMicLongPress()
             true
         }
+
+        // §7.4 delayed-transcription banner (expanded surface). Insert/Copy apply the §8.2
+        // substitutions just like the live-commit path before the text leaves the banner.
+        transcriptionBanner = DelayedTranscriptionBanner(
+            view,
+            onInsert = { id, text ->
+                val processed = substitutionManager.applySubstitutions(text)
+                ime.currentInputConnection?.commitText(processed, 1)
+                voiceController.markInserted(id)
+            },
+            onCopy = { _, text ->
+                val processed = substitutionManager.applySubstitutions(text)
+                LANboardClipboard.copy(ime, processed)
+                android.widget.Toast.makeText(
+                    ime, R.string.lb_copied_to_clipboard, android.widget.Toast.LENGTH_SHORT
+                ).show()
+            },
+        )
 
         // §6.2: the mic icon + listening spike tips carry the active preset's color (the per-app
         // auto-select feedback) from the moment the view exists — visible at idle, before recording.
@@ -153,6 +170,8 @@ class LANboardBridge(private val ime: LatinIME) {
 
     fun onInputViewFinished() {
         voiceController.onInputViewFinished()
+        // §7.4: the banner is session-scoped — drop any unresolved transcription when the session ends.
+        transcriptionBanner?.clearSession()
         stopFrameRunner()
     }
 

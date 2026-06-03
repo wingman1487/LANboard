@@ -16,6 +16,11 @@
     <string name="lb_pending_banner_copy">Copy</string>
     <string name="lb_pending_banner_discard">Discard</string>
 
+    <!-- §7.4 delayed-transcription banner -->
+    <string name="lb_transcription_banner_label">Transcription ready</string>
+    <string name="lb_transcription_banner_count">+%1$d more</string>
+    <string name="lb_copied_to_clipboard">Copied to clipboard</string>
+
     <!-- Settings -->
     <string name="lb_settings_title">LANboard Settings</string>
     <string name="lb_settings_server">Server</string>
