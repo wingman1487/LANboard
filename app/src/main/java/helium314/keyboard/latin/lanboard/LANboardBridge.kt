@@ -73,6 +73,18 @@ class LANboardBridge(private val ime: LatinIME) {
                 // instead of the v1 non-actionable Toast — focus may be on a different field now.
                 transcriptionBanner?.enqueue(id, text)
             }
+
+            override fun onHealthChanged(healthy: Boolean) {
+                // Re-render the ring's server-state stroke when reachability changes asynchronously
+                // (health check, failed send, or in-session poll). Only while IDLE — LISTENING /
+                // TRANSCRIBING own the ring during a recording and must not be overwritten.
+                if (voiceController.getState() == VoiceInputController.State.IDLE) {
+                    micRingView?.state = if (healthy)
+                        MicRingView.State.IDLE_OK
+                    else
+                        MicRingView.State.IDLE_UNREACHABLE
+                }
+            }
         }
     }
 
@@ -206,10 +218,13 @@ class LANboardBridge(private val ime: LatinIME) {
     }
 
     private fun updateRingForServerState() {
+        // Initial best-guess on keyboard open from the last-known flag; the async health check then
+        // corrects it via onHealthChanged. Use UNREACHABLE (not the amber "checking") for the
+        // not-healthy case — spec §line-265: don't flash "checking" on routine re-checks.
         micRingView?.state = if (voiceController.isServerHealthy())
             MicRingView.State.IDLE_OK
         else
-            MicRingView.State.IDLE_CHECKING
+            MicRingView.State.IDLE_UNREACHABLE
     }
 
     private fun startFrameRunner() {
