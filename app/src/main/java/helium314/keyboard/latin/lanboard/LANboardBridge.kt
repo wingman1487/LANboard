@@ -3,9 +3,11 @@ package helium314.keyboard.latin.lanboard
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -30,6 +32,30 @@ class LANboardBridge(private val ime: LatinIME) {
     private var terminalRowManager: TerminalRowManager? = null
     private var suggestionStripView: View? = null
     private var transcriptionBanner: DelayedTranscriptionBanner? = null
+    private var quickPicker: QuickPickerController? = null
+
+    // §5.6 quick-picker gesture tracker state (one continuous DOWN→MOVE→UP on the mic container).
+    private var gestureDownState: VoiceInputController.State? = null
+    private var gestureDownX = 0f
+    private var gestureDownY = 0f
+    private var gestureLongPressFired = false
+    private var gestureDragged = false
+    private var gesturePickerOpen = false
+    private val touchSlopPx by lazy { ViewConfiguration.get(ime).scaledTouchSlop }
+    private val longPressTimeoutMs = ViewConfiguration.getLongPressTimeout().toLong()
+    private val pickerLongPress = Runnable {
+        if (gesturePickerOpen) return@Runnable
+        gestureLongPressFired = true
+        if (gestureDownState == VoiceInputController.State.IDLE) {
+            // Idle long-press opens the §5.6 picker (no-op at ≤1 preset → open() returns false).
+            gesturePickerOpen = quickPicker?.open() ?: false
+        } else {
+            // LISTENING/TRANSCRIBING long-press keeps the existing discard, with the framework haptic
+            // the removed setOnLongClickListener used to provide for free.
+            micContainer?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            voiceController.onMicLongPress()
+        }
+    }
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val frameRunner = object : Runnable {
@@ -95,11 +121,20 @@ class LANboardBridge(private val ime: LatinIME) {
         val strip = view.findViewById<SuggestionStripView>(R.id.suggestion_strip_view)
         suggestionStripView = strip
 
-        micContainer?.setOnClickListener { voiceController.onMicTap() }
-        micContainer?.setOnLongClickListener {
-            voiceController.onMicLongPress()
-            true
-        }
+        // §5.6 quick-picker: a non-touchable overlay stacked above the strip row. Created here, shown
+        // only on an idle-ring long-press; never starts recording or touches the §7.3 health monitor.
+        val overlayHost = view.findViewById<FrameLayout>(R.id.lb_strip_overlay_host)
+        val mc = micContainer
+        quickPicker = if (overlayHost != null && strip != null && mc != null)
+            QuickPickerController(overlayHost, strip, mc, presetManager) { name -> onPickerResolve(name) }
+        else null
+
+        // One touch tracker replaces the click/long-click pair (§5.6). It re-dispatches tap (listen/commit)
+        // and listening-long-press (discard) exactly as before, re-adding the framework haptic + click /
+        // accessibility (performClick) those listeners gave for free, and owns the idle-long-press → picker
+        // branch. Returning true claims the whole DOWN→MOVE→UP stream so the finger can slide onto a pill.
+        mc?.setOnClickListener { voiceController.onMicTap() } // body fires only via performClick()
+        mc?.setOnTouchListener { _, ev -> onMicTouch(ev) }
 
         // §7.4 delayed-transcription banner (expanded surface). Insert/Copy apply the §8.2
         // substitutions just like the live-commit path before the text leaves the banner.
@@ -175,6 +210,61 @@ class LANboardBridge(private val ime: LatinIME) {
         micIcon?.setColorFilter(colorInt)
     }
 
+    /**
+     * §5.6 single-gesture tracker on the mic container. Re-dispatches the existing tap (listen/commit)
+     * and listening-long-press (discard) and owns the idle-long-press → picker branch. The picker path
+     * never calls onMicTap()/setState, so recording, audio focus and the §7.3 health monitor are untouched.
+     */
+    private fun onMicTouch(ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                gestureDownState = voiceController.getState()
+                gestureDownX = ev.rawX
+                gestureDownY = ev.rawY
+                gestureLongPressFired = false
+                gestureDragged = false
+                gesturePickerOpen = false
+                mainHandler.postDelayed(pickerLongPress, longPressTimeoutMs)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (gesturePickerOpen) {
+                    quickPicker?.onHover(ev.rawX, ev.rawY)
+                } else if (!gestureLongPressFired) {
+                    val dx = ev.rawX - gestureDownX
+                    val dy = ev.rawY - gestureDownY
+                    if (dx * dx + dy * dy > (touchSlopPx * touchSlopPx).toFloat()) {
+                        // A drag before the long-press timer fired is a scroll/slip, not a picker open.
+                        gestureDragged = true
+                        mainHandler.removeCallbacks(pickerLongPress)
+                    }
+                }
+            }
+            MotionEvent.ACTION_UP -> {
+                mainHandler.removeCallbacks(pickerLongPress)
+                if (gesturePickerOpen) {
+                    quickPicker?.resolveOnUp()?.let { onPickerResolve(it) }
+                } else if (!gestureLongPressFired && !gestureDragged) {
+                    // Clean tap → route through performClick() so click/accessibility (TalkBack) fire too.
+                    micContainer?.performClick()
+                }
+                gesturePickerOpen = false
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                mainHandler.removeCallbacks(pickerLongPress)
+                if (gesturePickerOpen) quickPicker?.abort()
+                gesturePickerOpen = false
+            }
+        }
+        return true
+    }
+
+    /** Resolve the §5.6 picker onto [name]: switch the active preset and re-tint the mic (§6.2). */
+    private fun onPickerResolve(name: String) {
+        presetManager.setActivePreset(name)
+        voiceController.activePreset = presetManager.getActivePreset()?.promptText
+        applyActivePresetColor() // Step 5 makes this a one-shot mic-tint crossfade
+    }
+
     private fun syncTerminalRow() {
         val shouldShow = config.terminalRowDefault
         terminalRowManager?.let {
@@ -188,6 +278,10 @@ class LANboardBridge(private val ime: LatinIME) {
         voiceController.onInputViewFinished()
         // §7.4: the banner is session-scoped — drop any unresolved transcription when the session ends.
         transcriptionBanner?.clearSession()
+        // §5.6: retract any open quick-picker when the session ends.
+        quickPicker?.clearSession()
+        mainHandler.removeCallbacks(pickerLongPress)
+        gesturePickerOpen = false
         stopFrameRunner()
     }
 

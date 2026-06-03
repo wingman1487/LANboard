@@ -147,6 +147,17 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private var transcriptionPulseAnimator: ValueAnimator? = null
     private var onTranscriptionTap: (() -> Boolean)? = null
 
+    /**
+     * Right edge of the ▸ toolbar-expand key in window coordinates (the §7.4 collapsed-badge anchor).
+     * The §5.6 quick-picker hard-insets its scrim plate's left edge past this so the amber badge — drawn
+     * over the ▸ key in [dispatchDraw], beneath the picker overlay sibling — is never painted over.
+     */
+    fun toolbarExpandKeyRightInWindow(): Int {
+        val loc = IntArray(2)
+        toolbarExpandKey.getLocationInWindow(loc)
+        return loc[0] + toolbarExpandKey.width
+    }
+
     private val toolbarKeyLayoutParams = LinearLayout.LayoutParams(
         resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_edge_key_width),
         LinearLayout.LayoutParams.MATCH_PARENT

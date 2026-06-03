@@ -22,9 +22,18 @@
         android:layout_marginRight="4dp"
         android:layout_marginBottom="8dp" />
 
-    <include
-        android:id="@+id/strip_container"
-        layout="@layout/strip_container" />
+    <!-- LANboard §5.6: wrap the top strip so the quick-picker overlay can stack directly above it in
+         the same bounds (FrameLayout z-stacking). strip_container keeps its id, so KeyboardSwitcher's
+         findViewById/visibility and SuggestionStripView's own layout are unaffected. -->
+    <FrameLayout
+        android:id="@+id/lb_strip_overlay_host"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <include
+            android:id="@+id/strip_container"
+            layout="@layout/strip_container" />
+    </FrameLayout>
 
     <!-- LANboard: terminal modifier row (Esc, Tab, Ctrl, Alt, arrows, PgUp, PgDn) -->
     <include
