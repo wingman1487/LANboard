@@ -77,21 +77,15 @@ class VoiceInputController(
             return
         }
 
+        // §7.1 dual-path: recording is ALWAYS allowed regardless of server reachability. On commit the
+        // local WAV is written unconditionally and queued if the send fails (§7.2 network-down) — that
+        // is the entire point of the pending queue + §7.4 delayed banner ("audio is never lost to a
+        // transient network failure"). Server health gates only the ring color and the retry, NEVER
+        // capture. (Blocking capture here was a latent bug, previously masked by the stale-green
+        // health flag.) If health is stale, kick a background re-check so the ring is current — it
+        // updates via onHealthChanged — but don't block recording on its result.
         if (!serverHealthy && System.currentTimeMillis() - lastHealthCheck > 30_000) {
-            scope.launch {
-                setServerHealthy(whisperClient.checkHealth(config))
-                if (serverHealthy) {
-                    beginCapture()
-                } else {
-                    toast("Server unreachable")
-                }
-            }
-            return
-        }
-
-        if (!serverHealthy) {
-            toast("Server unreachable")
-            return
+            checkHealth()
         }
 
         beginCapture()
