@@ -5,11 +5,14 @@
  */
 package helium314.keyboard.latin.suggestions
 
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
@@ -27,6 +30,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import helium314.keyboard.event.HapticEvent
@@ -41,6 +45,7 @@ import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.Colors
 import helium314.keyboard.latin.common.Constants
+import helium314.keyboard.latin.lanboard.TranscriptionDotHost
 import helium314.keyboard.latin.define.DebugFlags
 import helium314.keyboard.latin.settings.DebugSettings
 import helium314.keyboard.latin.settings.Defaults
@@ -69,7 +74,8 @@ import kotlinx.coroutines.launch
 
 @SuppressLint("InflateParams")
 class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int) :
-    RelativeLayout(context, attrs, defStyle), View.OnClickListener, OnLongClickListener, OnSharedPreferenceChangeListener {
+    RelativeLayout(context, attrs, defStyle), View.OnClickListener, OnLongClickListener, OnSharedPreferenceChangeListener,
+    TranscriptionDotHost {
 
     /** Construct a [SuggestionStripView] for showing suggestions to be picked by the user. */
     constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, R.attr.suggestionStripViewStyle)
@@ -123,6 +129,23 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private val defaultToolbarBackground: Drawable = toolbarExpandKey.background
     private val enabledToolKeyBackground = GradientDrawable()
     private var direction = 1 // 1 if LTR, -1 if RTL
+
+    // §7.4 Phase 2 — collapsed delayed-transcription badge: an amber dot drawn over the ▸ key's
+    // top-right corner (visual contract delayed-transcription-banner.html .badge). Owned here because
+    // this view owns the toolbarExpandKey; DelayedTranscriptionBanner drives it via TranscriptionDotHost.
+    private val transcriptionDotFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.lb_amber)
+    }
+    private val transcriptionDotRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xFF131820.toInt() // matches the render's 2px dark separator border
+    }
+    private val transcriptionDotGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.lb_amber)
+    }
+    private var transcriptionDotVisible = false
+    private var transcriptionPulse = 0f // 0 = resting; (0,1] while the one-shot arrival pulse plays
+    private var transcriptionPulseAnimator: ValueAnimator? = null
+    private var onTranscriptionTap: (() -> Boolean)? = null
 
     private val toolbarKeyLayoutParams = LinearLayout.LayoutParams(
         resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_edge_key_width),
@@ -338,6 +361,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             }
         }
         if (view === toolbarExpandKey) {
+            // §9.2 tap-priority: while a delayed transcription is pending (the amber dot is showing),
+            // the first ▸ tap expands the banner instead of toggling the toolbar. The handler returns
+            // true when it consumed the tap; once the banner is shown/resolved the dot clears and ▸
+            // behaves normally again.
+            if (transcriptionDotVisible && onTranscriptionTap?.invoke() == true) {
+                return
+            }
             setToolbarVisibility(toolbarContainer.visibility != VISIBLE)
         }
 
@@ -349,6 +379,63 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             val wordInfo = suggestedWords.getInfo(tag)
             listener.pickSuggestionManually(wordInfo)
         }
+    }
+
+    // --- §7.4 Phase 2: collapsed delayed-transcription badge (TranscriptionDotHost) ---
+
+    override fun showTranscriptionDot(pulse: Boolean) {
+        transcriptionDotVisible = true
+        if (pulse) startTranscriptionPulse() else invalidate()
+    }
+
+    override fun hideTranscriptionDot() {
+        transcriptionDotVisible = false
+        transcriptionPulseAnimator?.cancel()
+        transcriptionPulseAnimator = null
+        transcriptionPulse = 0f
+        invalidate()
+    }
+
+    override fun setTranscriptionTapHandler(handler: () -> Boolean) {
+        onTranscriptionTap = handler
+    }
+
+    /** One-shot expanding ring on arrival — never loops (§13.2: no ambient animation). */
+    private fun startTranscriptionPulse() {
+        transcriptionPulseAnimator?.cancel()
+        transcriptionPulse = 0f
+        transcriptionPulseAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 600L
+            addUpdateListener {
+                transcriptionPulse = it.animatedValue as Float
+                invalidate()
+            }
+            start()
+        }
+    }
+
+    override fun dispatchDraw(canvas: Canvas) {
+        super.dispatchDraw(canvas)
+        if (!transcriptionDotVisible) return
+
+        val density = resources.displayMetrics.density
+        val r = 6.5f * density       // ~13dp dot to match the render's .badge
+        val ring = 2f * density      // dark separator border
+        // Anchor at the ▸ key's top-right corner, clamped fully inside this view so it never clips.
+        val cx = (toolbarExpandKey.right - r * 0.4f).coerceIn(r + ring, width - r - ring)
+        val cy = (toolbarExpandKey.top + r).coerceIn(r + ring, height - r - ring)
+
+        // Expanding pulse ring (fades as it grows) — only while the one-shot animation plays.
+        if (transcriptionPulse in 0f..1f && transcriptionPulseAnimator?.isRunning == true) {
+            transcriptionDotGlow.alpha = ((1f - transcriptionPulse) * 140f).toInt().coerceIn(0, 255)
+            canvas.drawCircle(cx, cy, r + ring + transcriptionPulse * r * 1.8f, transcriptionDotGlow)
+        }
+        // Resting amber halo for the floating-badge feel.
+        transcriptionDotGlow.alpha = 60
+        canvas.drawCircle(cx, cy, r + ring * 1.6f, transcriptionDotGlow)
+        // Dark separator ring, then the solid amber dot on top.
+        canvas.drawCircle(cx, cy, r + ring, transcriptionDotRing)
+        canvas.drawCircle(cx, cy, r, transcriptionDotFill)
     }
 
     override fun onLongClick(view: View): Boolean {
