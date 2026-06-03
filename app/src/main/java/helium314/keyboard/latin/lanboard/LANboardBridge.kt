@@ -1,5 +1,9 @@
 package helium314.keyboard.latin.lanboard
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ArgbEvaluator
+import android.animation.ValueAnimator
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
@@ -33,6 +37,12 @@ class LANboardBridge(private val ime: LatinIME) {
     private var suggestionStripView: View? = null
     private var transcriptionBanner: DelayedTranscriptionBanner? = null
     private var quickPicker: QuickPickerController? = null
+
+    // §6.2 mic-icon tint crossfade (v2.5): the icon color animates a one-shot ~200ms ARGB crossfade on an
+    // ACTUAL preset change (manual §5.6 switch or per-app auto-apply). Seeded from the active preset at
+    // view creation so a cold-start open never flashes; same-preset re-applies stay instant.
+    private var displayedPresetColor: Int = LBPresetPalette.GENERAL_CYAN
+    private var tintAnimator: ValueAnimator? = null
 
     // §5.6 quick-picker gesture tracker state (one continuous DOWN→MOVE→UP on the mic container).
     private var gestureDownState: VoiceInputController.State? = null
@@ -193,7 +203,9 @@ class LANboardBridge(private val ime: LatinIME) {
 
         voiceController.onInputViewStarted()
         updateRingForServerState()
-        applyActivePresetColor()
+        // §6.2 v2.5: a per-app auto-apply that lands on a DIFFERENT preset crossfades the mic tint; on
+        // cold start the seeded displayed color makes this a same-color no-op (no flash).
+        applyActivePresetColor(animate = true)
         startFrameRunner()
         syncTerminalRow()
     }
@@ -202,12 +214,38 @@ class LANboardBridge(private val ime: LatinIME) {
      *  color. The ring STROKE stays the server-state channel and is NOT tinted here. Falls back to
      *  General cyan via [VoicePresetManager.Preset.colorInt] / [LBPresetPalette] so a bad stored hex
      *  never crashes the IME. */
-    private fun applyActivePresetColor() {
+    private fun applyActivePresetColor(animate: Boolean = false) {
         val preset = presetManager.getActivePreset()
         val colorInt = preset?.colorInt() ?: LBPresetPalette.GENERAL_CYAN
         val isGeneral = preset == null || preset.name == "General"
-        micRingView?.setActivePreset(colorInt, isGeneral)
-        micIcon?.setColorFilter(colorInt)
+        if (!shouldAnimateTint(animate, displayedPresetColor, colorInt)) {
+            // Instant: cold start, same-preset re-apply, or a state change that must not flicker.
+            tintAnimator?.cancel()
+            micRingView?.setActivePreset(colorInt, isGeneral)
+            micIcon?.setColorFilter(colorInt)
+            displayedPresetColor = colorInt
+            return
+        }
+        // One-shot ~200ms crossfade of the mic ICON tint only (§13.2 carve-out: fires once on a discrete
+        // change, settles static). The ring is IDLE on a switch/auto-apply, so its spike-tip color is
+        // landed once at the end for the next LISTENING session; the ring STROKE is never touched here.
+        val from = displayedPresetColor
+        tintAnimator?.cancel()
+        tintAnimator = ValueAnimator.ofObject(ArgbEvaluator(), from, colorInt).apply {
+            duration = MIC_TINT_CROSSFADE_MS
+            addUpdateListener { micIcon?.setColorFilter(it.animatedValue as Int) }
+            addListener(object : AnimatorListenerAdapter() {
+                private var cancelled = false
+                override fun onAnimationCancel(animation: Animator) { cancelled = true }
+                override fun onAnimationEnd(animation: Animator) {
+                    if (cancelled) return
+                    micIcon?.setColorFilter(colorInt)
+                    micRingView?.setActivePreset(colorInt, isGeneral)
+                    displayedPresetColor = colorInt
+                }
+            })
+            start()
+        }
     }
 
     /**
@@ -258,11 +296,11 @@ class LANboardBridge(private val ime: LatinIME) {
         return true
     }
 
-    /** Resolve the §5.6 picker onto [name]: switch the active preset and re-tint the mic (§6.2). */
+    /** Resolve the §5.6 picker onto [name]: switch the active preset and crossfade the mic tint (§6.2). */
     private fun onPickerResolve(name: String) {
         presetManager.setActivePreset(name)
         voiceController.activePreset = presetManager.getActivePreset()?.promptText
-        applyActivePresetColor() // Step 5 makes this a one-shot mic-tint crossfade
+        applyActivePresetColor(animate = true) // one-shot mic-tint crossfade on the manual switch
     }
 
     private fun syncTerminalRow() {
@@ -331,5 +369,16 @@ class LANboardBridge(private val ime: LatinIME) {
     private fun stopFrameRunner() {
         frameRunnerActive = false
         mainHandler.removeCallbacks(frameRunner)
+    }
+
+    companion object {
+        private const val MIC_TINT_CROSSFADE_MS = 200L
+
+        /**
+         * Gate for the §6.2 mic-tint crossfade: animate ONLY when explicitly requested AND the color
+         * actually changes — so cold-start opens and same-preset re-applies stay instant (no flash, no
+         * flicker) and the crossfade is strictly one-shot on a real change (§13.2).
+         */
+        fun shouldAnimateTint(animate: Boolean, from: Int, to: Int): Boolean = animate && from != to
     }
 }
