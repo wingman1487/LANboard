@@ -11,6 +11,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.suggestions.SuggestionStripView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -79,7 +80,8 @@ class LANboardBridge(private val ime: LatinIME) {
         micRingView = view.findViewById(R.id.lb_mic_ring)
         micIcon = view.findViewById(R.id.lb_mic_icon)
         micContainer = view.findViewById(R.id.lb_mic_ring_container)
-        suggestionStripView = view.findViewById(R.id.suggestion_strip_view)
+        val strip = view.findViewById<SuggestionStripView>(R.id.suggestion_strip_view)
+        suggestionStripView = strip
 
         micContainer?.setOnClickListener { voiceController.onMicTap() }
         micContainer?.setOnLongClickListener {
@@ -91,6 +93,8 @@ class LANboardBridge(private val ime: LatinIME) {
         // substitutions just like the live-commit path before the text leaves the banner.
         transcriptionBanner = DelayedTranscriptionBanner(
             view,
+            // §7.4 Phase 2 dot host: the strip owns the ▸ key the collapsed badge sits on (§9.2 tap-priority).
+            dotHost = strip,
             onInsert = { id, text ->
                 val processed = substitutionManager.applySubstitutions(text)
                 ime.currentInputConnection?.commitText(processed, 1)
