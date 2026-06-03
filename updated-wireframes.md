@@ -1,68 +1,32 @@
-# LANboard v2.4 — Updated Wireframes
+# LANboard v2.5 — Updated Wireframes
 
-Wireframes authored/updated during the Stage-2 build-review round. Both have standalone HTML visual contracts in this package; build to match those. The descriptions below capture the approved layout decisions.
+> One new wireframe this round. It was rendered and approved during the design review conversation; the file itself ships in this package and is the **authoritative render contract** — build to match it (§13.3). The description below captures the approved decisions in the standard format.
 
----
+## Quick Preset Picker Overlay (`quick-picker-overlay.html`) — NEW (§5.6)
 
-## Manage Presets (list + edit + swatch grid) — NEW
-**Visual contract:** `Q2-manage-presets-screen.html`
-**Spec:** §6.2, §8.1, §9.3
-**Status:** Approved (owner, this session)
+**Layout**: A single full-strip floating scrim plate over the 44dp top strip's center+right zone (the plate ends before the far-left `▸` arrow column, which stays visible beside it). Contents right-to-left: the inert active-preset float as the in-strip head immediately left of the ring → alternative pills filling nearest-the-ring-first in §8.1 order (up to the ~4 cap) → the two-state "…"/gear utility tile at the row's far-left end. Resting layout is a straight horizontal row on the strip baseline; "fan" is the staggered open motion only. The ring stays top-right in every posture; the plate spans the full strip width in all postures (never halved).
 
-This is the previously-missing render that was blocking `preset-management-ui`. Three panels: list, edit (non-General), edit (General).
+**Components present**:
+- **Scrim plate**: `backdrop-filter:blur(14px)`, radius 12, shadow `0 10px 24px rgba(0,0,0,0.6)` + inset top lip `rgba(255,255,255,0.08)` (the §7.4 banner's values), cyan-glass fill `#10242c→#0b181d` at ~92% alpha, border `rgba(0,212,255,0.18)`. One plate — never per-pill blur surfaces.
+- **Inert float**: 30dp tall, radius 8, padding 0 12dp, weight 700 — **solid cyan `#00d4ff` fill always** (regardless of active preset; identity rides on the mic tint), ink `#04222b`, soft glow `0 0 10px rgba(0,212,255,0.6)`, **no top-lip inset, no lift shadow** (marker, not target).
+- **Alternative pills**: 30dp tall, radius 8, system sans 12.5sp/600, neutral glass `#2b333d→#181e25`, white-lip inset + small lift shadow, max-width 118dp with tail ellipsis, leading 13dp identity dot (solid preset hex + `0 0 0 3px rgba(255,255,255,0.04)` ring; General's dot keeps its cyan glow). Gap 7dp, plate insets 8dp.
+- **Utility tile**: 30dp, radius 8, dimmer glass `#222a33→#161c23`, muted ink, no dot. Gear when nothing hidden; "…" + cyan "+N" count chip (10.5sp, outlined `rgba(0,212,255,0.35)`, radius 6) on overflow.
 
-### Manage Presets — list screen
-**Layout:** App bar ("Manage presets", back arrow) over a single grouped frosted card of preset rows, then a separate card holding the "Add preset" action.
-**Components present:**
-- Each row, left→right: a **§6.2 identity dot** (the preset's color), a **name** + **subtitle** (e.g. Coding / "Termux · code editors"), and an **explicit drag handle** (grip glyph) on the right for reorder.
-- The **General** row is last and shows a small **"PERMANENT"** marker in place of the drag handle's delete path — it is non-deletable (still reorderable; name/prompt still editable). Its dot is cyan with a soft glow.
-- A one-line hint under the app bar: reorder sets the quick-picker fan order and per-app cold-start default.
-- **"Add preset"** row in its own card below, cyan "+" icon and cyan label.
-**Colors:** Frosted card `linear-gradient(180deg,#1a2029,#13181f)` + `--border`, inset top highlight; identity dots use each preset's hex; cyan accents on the add action and the General dot glow. Tokens match `Q6-settings-reskin-screen.html`.
-**Interactions:** Tap a row → opens its edit screen. Drag the handle → reorder (writes the single global order). Tap "Add preset" → new-preset edit screen. **No "Auto-select preset per app" toggle on this screen** — it lives only under Settings → Voice accuracy (§8.1/§9.3).
-**Approved:** Yes
+**Colors used**: cyan signature on float + armed states + count chip; per-preset hexes on dots only (Coding `#3b82f6`, Email `#14b8a6`, Personal `#e0569f`, Terminal `#8090a8`, General `#00d4ff`); scrim/pills in the neutral/cyan dark-glass family — never the banner's amber.
 
-### Preset edit screen — non-General (Coding shown)
-**Layout:** App bar ("Edit preset", back, cyan "Done"). Then NAME field, PROMPT field with a right-aligned soft word-count, then the **Preset color** block (its own frosted card), then a centered **Delete preset** action at the bottom.
-**Components present:**
-- **NAME** — single-line input, inset dark fill.
-- **PROMPT** — multi-line input; sample content reads as Whisper *register/vocabulary biasing* and deliberately contains **none** of the §8.2 global-substitution proper-nouns (see §8.1 guard note). Right-aligned counter `NN / ~150 words`, turning `--amber` at 150.
-- **Preset color block** — header "Preset color" + caption "tints the mic icon + spike tips". Body is two columns: a **6×2 curated swatch grid** (left, flexes) and a **live mic preview** (right, ~96px). Selected swatch carries a cyan focus ring + check. The four locked-default swatches carry a small notch dot (bottom-right). A footnote spells out the reserved exclusions (cyan, green-pulse, amber, red, + purple) with sample reserved chips.
-- **Live mic preview** — a cyan ring with three spike marks rendered as cyan-base → preset-tip gradients (mirrors §6.2 listening render), captioned "Live preview". Updates to the selected swatch.
-- **Delete preset** — outlined `--red-dim` pill, low-emphasis (non-General only).
-**Colors:** Swatch set = the 12 authored hexes (§6.2). Selected ring `--cyan`. Preview ring `--cyan` stroke, glow tinted to the selected color.
-**Interactions:** Tap a swatch → selects it (preview + identity dot update live); duplicate selection allowed with a soft "also used by X" hint (G3). Edit name/prompt inline. Delete → removes the preset (cascade per §8.1/G1: active reverts to General, stale per-app map entries fall to cold-start).
-**Approved:** Yes
+**Interactions** (all within the one continuous gesture, §5.6):
+- Slide over a pill → **armed**: cyan border + 1dp lift + 1.03 scale. Hit region per pill = pill width + half-gap each side at the **full 44dp band height**.
+- Lift on a pill → float label updates + pinned **cyan** scale-pulse (~150ms, 1→1.14→1) → retract (~200ms) → mic icon crossfades to the landed preset's color (~200ms, one-shot).
+- Lift on "…"/gear → Manage Presets (active preset pre-selected). During an open picker, release precedence at the `▸` end belongs to the picker; the §7.4 badge's first-tap priority applies only outside a gesture.
+- Lift anywhere else / instant release → honest unfurl-then-snap-back retract, no preset committed.
+- Open/retract are one-shot on gesture, settle static — §13.2-compliant via the press-glint carve-out (demonstrated in the file's motion demos).
 
-### Preset edit screen — General (the exception)
-**Layout:** Same app bar + NAME + PROMPT, but the **Preset color** block is replaced by a **fixed cyan identity chip** — a cyan disc + "Always cyan — the signature" + sub-caption "General owns LANboard's cyan; it can't be recolored." **No swatch grid. No Delete action.**
-**Colors:** Cyan chip on a cyan-tinted frosted card.
-**Interactions:** Name/prompt editable; color and existence are fixed (§6.2/§8.1).
-**Approved:** Yes
+**Frames in the file**: (1) portrait open with gear; (2) armed state + hit-rule visualization; (3) portrait overflow "… +2" with a truncated long label; (4) single-alternative edge state; (5) wide unfolded/split frame filling to the cap; (6) folded-landscape worst case (two-row terminal + live amber badge + open picker); (7) red `IDLE_UNREACHABLE` ring beneath an unchanged overlay; (8) §7.4 banner expanded + picker open (float in-strip below the banner-aware `visibleTopY`); (9) interactive one-shot open / switch / instant-release motion demos.
 
----
+**Approved**: Yes (owner-approved in the v2.5 design review; float-stays-cyan and nearest-ring-first fill were explicit owner calls).
 
-## §7.4 Delayed-transcription banner — NEW
-**Visual contract:** `delayed-transcription-banner.html`
-**Spec:** §7.4 (full design), §9.2 (collapsed-dot host)
-**Status:** Approved (owner, this session)
+## Screens checked, unchanged
 
-Replaces the v1 non-actionable Toast. Three states shown: expanded, collapsed, multi-arrival.
-
-### Expanded banner
-**Layout:** A floating glass surface docked directly above the full-width top strip, spanning the full strip width in every posture. Single row, left→right.
-**Components present:** `--amber` status dot + label **"TRANSCRIPTION READY"**; a single-line **~60-char preview** (ellipsized); then right-aligned controls **Insert** (cyan primary), **Copy** (secondary outline), **×** (discard).
-**Colors:** Dark glass body with an `--amber` left edge (3px) + amber dot; Insert is `--cyan` fill on dark text; Copy is `--border`-outlined secondary; × is muted. **Real backdrop blur** (floating surface, §6.7) — not the keys' faux-glass.
-**Interactions:** Insert → drops text at the current cursor + dismiss. Copy → clipboard + dismiss. × → discard. Never auto-inserts. Session-scoped; the transcription also persists in the Pending Queue regardless (§7.5).
-**Approved:** Yes
-
-### Collapsed state
-**Layout:** Banner gone; a small **amber dot badge on the far-left `▸` toolbar arrow**.
-**Components present:** The `▸` arrow with an amber dot at its top-right.
-**Interactions:** Dot pulses **once** on arrival then rests static (no looping — §13.2). **Tap priority:** while the dot is present, the first tap on the arrow expands the banner; the toolbar opens on the next tap or after the banner is resolved (G2/§9.2).
-**Approved:** Yes
-
-### Multiple arrivals
-**Layout:** One expanded banner at a time; the label carries a **"+N more"** count chip (amber outline). Collapsed, the count rides on the dot.
-**Interactions:** Resolving the current banner (Insert / Copy / ×) advances to the next queued transcription.
-**Approved:** Yes
+- **§7.4 banner (`delayed-transcription-banner.html`)** — no visual change; the picker borrows its blur/shadow/lip values and adds a coexistence/z-order rule only (spec §5.6/§9.1/§9.2).
+- **Manage Presets (`Q2-manage-presets-screen.html`)** — no visual change; it is the "…"/gear destination and its reorder already drives the (now nearest-ring-first) fill order.
+- **Split layout (`Q5-split-keyboard-layout.html`)** — no visual change; the wide-strip count rule is documented in §10.4 and rendered in the new contract's wide frames.

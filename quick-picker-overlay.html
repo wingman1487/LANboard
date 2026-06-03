@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LANboard V2.5 — §5.6 quick preset picker overlay (authoritative render contract)</title>
+<style>
+  :root{
+    --bg-deepest:#0a0d10; --text-primary:#e6edf3; --text-secondary:#9ba8b4; --text-muted:#6b7785;
+    --text-quiet:#4a5360; --border:#2a323c; --cyan:#00d4ff; --cyan-soft:#4dd9ee; --amber:#f0b429; --red:#ef4444;
+    --c-coding:#3b82f6; --c-email:#14b8a6; --c-personal:#e0569f; --c-terminal:#8090a8; --c-general:#00d4ff;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --font-mono:ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#05070a;min-height:100vh;font-family:var(--font-sans);color:var(--text-primary);
+       padding:28px 14px 48px;}
+  .pagecap{max-width:1000px;margin:0 auto 24px;color:var(--text-muted);font-size:13px;line-height:1.6;}
+  .pagecap b{color:var(--cyan-soft);font-weight:600;}
+  h2{max-width:1000px;margin:34px auto 10px;font-size:13px;letter-spacing:.08em;color:var(--cyan-soft);
+     text-transform:uppercase;font-weight:600;}
+  .flow{display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-start;max-width:1000px;margin:0 auto;}
+  .panel{width:470px;max-width:100%;}
+  .panel.wide{width:1000px;}
+  .cap{color:var(--text-muted);font-size:12px;line-height:1.55;margin:0 0 12px;}
+  .cap b{color:var(--cyan-soft);font-weight:600;}
+  .cap .amb{color:var(--amber);font-weight:600;}
+  .cap .rd{color:#e0707a;font-weight:600;}
+
+  .kb{background:linear-gradient(180deg,#131820,#0e1218);border-top:1px solid #2a323c;border-radius:14px;
+      padding:8px 6px 12px;position:relative;}
+
+  /* ---- top strip: 34px arrow | flex center | 46px ring container (§9.1: 44dp band, 32dp ring) ---- */
+  .strip{display:grid;grid-template-columns:34px 1fr 46px;gap:8px;align-items:center;padding:6px;min-height:46px;position:relative;}
+  .arrow{height:30px;border-radius:8px;display:grid;place-items:center;color:var(--cyan);font-size:15px;position:relative;
+         background:linear-gradient(180deg,#2b333d,#181e25);border:1px solid rgba(255,255,255,0.08);
+         box-shadow:inset 0 1px 0 rgba(255,255,255,0.2);}
+  .arrow .badge{position:absolute;top:-5px;right:-5px;width:13px;height:13px;border-radius:50%;background:var(--amber);
+        border:2px solid #131820;box-shadow:0 0 7px rgba(240,180,41,0.8);}
+  .ring{width:38px;height:38px;border-radius:50%;border:2px solid var(--cyan);display:grid;place-items:center;
+        justify-self:end;box-shadow:inset 0 0 7px rgba(0,212,255,0.35);flex:none;}
+  .ring.err{border-color:var(--red);box-shadow:inset 0 0 7px rgba(239,68,68,0.4);}
+  .ring svg{width:18px;height:18px;transition:color .22s ease;}
+  .sugg{display:flex;justify-content:space-around;font-size:13px;color:var(--text-muted);transition:transform .22s ease,opacity .22s ease;}
+  .sugg .p{color:var(--text-primary);font-weight:500;}
+
+  /* ---- picker overlay: ONE full-strip blurred scrim plate (Q8-A) — banner blur/shadow/lip values, cyan-glass fill ---- */
+  .pick{position:absolute;left:6px;right:52px;top:5px;bottom:5px;border-radius:12px;display:flex;align-items:center;
+        gap:7px;padding:0 8px;justify-content:flex-end;
+        background:linear-gradient(180deg,rgba(16,36,44,0.92),rgba(11,24,29,0.92));
+        border:1px solid rgba(0,212,255,0.18);
+        box-shadow:0 10px 24px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.08);
+        backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+
+  /* ---- alternative pill: V2.3 glass sans, strip-authored 30dp height, neutral body + 13dp identity dot (Q4-A/Q5-A/Q10) ---- */
+  .pill{height:30px;display:flex;align-items:center;gap:7px;padding:0 11px;border-radius:8px;font-size:12.5px;font-weight:600;
+        color:var(--text-primary);background:linear-gradient(180deg,#2b333d,#181e25);
+        border:1px solid rgba(255,255,255,0.10);box-shadow:inset 0 1px 0 rgba(255,255,255,0.18),0 2px 6px rgba(0,0,0,0.4);
+        white-space:nowrap;max-width:118px;flex:none;}
+  .pill .lbl{overflow:hidden;text-overflow:ellipsis;}
+  .pill .dot{width:13px;height:13px;border-radius:50%;flex:none;box-shadow:0 0 0 3px rgba(255,255,255,0.04);}
+  .pill .dot.gen{box-shadow:0 0 8px rgba(0,212,255,.5);}
+  .pill.armed{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,212,255,0.35),inset 0 1px 0 rgba(255,255,255,0.22),0 3px 8px rgba(0,0,0,0.5);
+        transform:translateY(-1px) scale(1.03);}
+
+  /* ---- "…"/gear: quiet two-state utility tile, distinct from switch targets (Q6-A+C) ---- */
+  .util{height:30px;min-width:30px;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 7px;
+        border-radius:8px;color:var(--text-muted);font-size:14px;flex:none;
+        background:linear-gradient(180deg,#222a33,#161c23);border:1px solid rgba(255,255,255,0.06);}
+  .util .count{font-size:10.5px;color:var(--cyan-soft);border:1px solid rgba(0,212,255,0.35);border-radius:6px;
+        padding:0px 5px;font-weight:600;}
+
+  /* ---- inert "you are here" float (Q2): ALWAYS the cyan signature; marker-not-target treatment —
+         solid cyan fill, dark ink, soft cyan glow, NO bright top-lip, NO lift shadow ---- */
+  .float{height:30px;display:flex;align-items:center;padding:0 12px;border-radius:8px;font-size:12.5px;font-weight:700;
+         flex:none;letter-spacing:.01em;background:var(--cyan);color:#04222b;
+         box-shadow:0 0 10px rgba(0,212,255,0.6);transition:box-shadow .2s ease;}
+
+  /* ---- qwerty / terminal abstractions ---- */
+  .rows{padding:8px 6px 0;display:grid;gap:6px;}
+  .rw{display:flex;gap:5px;justify-content:center;}
+  .k{flex:1;max-width:38px;height:30px;border-radius:7px;background:linear-gradient(180deg,#2b333d,#181e25);
+     border:1px solid rgba(255,255,255,0.07);box-shadow:inset 0 1px 0 rgba(255,255,255,0.16),0 2px 4px rgba(0,0,0,0.35);}
+  .k.t{height:24px;font-size:9.5px;color:var(--text-quiet);display:grid;place-items:center;font-family:var(--font-mono);
+       max-width:none;}
+  .split{display:flex;gap:0;}
+  .half{flex:1;display:grid;gap:6px;}
+  .gap{width:120px;flex:none;}
+
+  /* §7.4 expanded banner (verbatim idiom from delayed-transcription-banner.html) */
+  .banner{margin:0 4px 8px;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:11px;
+      background:linear-gradient(180deg,rgba(34,30,18,0.92),rgba(22,20,14,0.92));
+      border:1px solid rgba(240,180,41,0.32);border-left:3px solid var(--amber);
+      box-shadow:0 10px 24px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+  .bdot{width:9px;height:9px;border-radius:50%;background:var(--amber);flex:none;box-shadow:0 0 8px rgba(240,180,41,0.7);}
+  .btext{flex:1;min-width:0;}
+  .blabel{font-size:11px;color:var(--amber);font-weight:600;letter-spacing:.03em;}
+  .bprev{font-size:13px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+  .bbtn{font-size:12.5px;border-radius:8px;padding:7px 12px;font-weight:600;flex:none;
+        background:var(--cyan);color:#04222b;box-shadow:0 0 0 1px rgba(0,212,255,0.4),inset 0 1px 0 rgba(255,255,255,0.4);}
+
+  /* hit-region visualization (P6 only) */
+  .hit{position:absolute;top:0;bottom:0;border:1px dashed rgba(0,212,255,0.5);border-radius:4px;
+       background:rgba(0,212,255,0.06);pointer-events:none;}
+
+  /* ---- animated demo (P10): one-shot open / switch / retract ---- */
+  .btnrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  button{font-family:var(--font-sans);font-size:12.5px;font-weight:600;border-radius:8px;padding:8px 13px;cursor:pointer;
+         background:var(--cyan);color:#04222b;border:0;box-shadow:0 0 0 1px rgba(0,212,255,0.4),inset 0 1px 0 rgba(255,255,255,0.4);}
+  button.sec{background:transparent;color:var(--text-secondary);border:1px solid var(--border);box-shadow:none;}
+  button:disabled{opacity:.45;cursor:default;}
+  .status{font-size:11.5px;color:var(--text-quiet);margin-top:8px;min-height:16px;}
+  .demo .pick{opacity:0;pointer-events:none;}
+  .demo .pill,.demo .util,.demo .float{opacity:0;transform:translateX(26px);}
+  .demo.open .pick{opacity:1;transition:opacity .15s ease;}
+  .demo.open .pill,.demo.open .util,.demo.open .float{opacity:1;transform:none;
+        transition:opacity .2s ease,transform .22s cubic-bezier(.2,.8,.3,1);}
+  .demo.open .float{transition-delay:0ms;}
+  .demo.open .p1{transition-delay:45ms;}
+  .demo.open .p2{transition-delay:90ms;}
+  .demo.open .p3{transition-delay:135ms;}
+  .demo.open .util{transition-delay:180ms;}
+  .demo.open .sugg{transform:translateX(-120%);opacity:0;}
+  .demo.closing .pick{opacity:0;transition:opacity .2s ease .1s;}
+  .demo.closing .pill,.demo.closing .util,.demo.closing .float{opacity:0;transform:translateX(26px);
+        transition:opacity .18s ease,transform .2s ease;}
+  @keyframes cyan-pulse{0%{transform:scale(1);}45%{transform:scale(1.14);}100%{transform:scale(1);}}
+  .float.pulse{animation:cyan-pulse .15s ease-out 1;box-shadow:0 0 14px rgba(0,212,255,0.85);}
+</style>
+</head>
+<body>
+
+<div class="pagecap">
+<b>§5.6 quick preset picker — authoritative render contract (V2.5).</b> The picker is a single full-strip floating glass scrim
+(<b>blur(14px)</b>, radius 12, the §7.4 banner's shadow + inset top lip, cyan-glass fill — never amber) carrying, right to left:
+the inert <b>cyan "you are here" float</b> (always the cyan signature regardless of active preset — marker treatment: solid fill,
+dark ink, soft glow, <b>no</b> bright top-lip, <b>no</b> lift shadow), then the alternative pills (neutral V2.3 glass, 30dp tall,
+13dp identity dot, max-width 118dp with tail ellipsis), then the far-left two-state utility tile (gear, or "…" + a cyan "+N" count
+chip when presets are hidden). Pills sit nearest-ring-first in the global §8.1 order. The open is a <b>one-shot</b> staggered
+right→left reveal (~220ms, 45ms/element) that settles static — compliant with the §13.2 wave ban by the same carve-out as the
+press-glint: it fires once on gesture-begin, never loops, never idles. Resolve: armed pill (cyan border + 1dp lift + 1.03 scale)
+→ lift → float label updates and plays the pinned <b>cyan</b> scale-pulse (~150ms) → overlay retracts (~200ms) → the <b>mic icon
+crossfades</b> to the landed preset's color (~200ms, one-shot; plays on auto-apply tint changes too — the pulse is manual-only).
+Hit rule for the sliding finger: each pill's armed region is its width plus half the 7dp inter-pill gap on each side, at the
+<b>full 44dp strip-band height</b> — the 30dp pill is the visual, not the target.
+</div>
+
+<h2>1 · Portrait — open, nothing hidden (gear)</h2>
+<div class="flow">
+  <div class="panel">
+    <p class="cap"><b>Four presets, active = Coding.</b> Coding lifts out as the cyan float at the head of the row (in-strip, left of the ring — Q3 anchor B); alternatives fan left in §8.1 order, nearest the ring first: Email, Personal, General. Nothing hidden → plain <b>gear</b> tile far-left. The mic icon stays Coding-blue (§6.2 tint) and the ring keeps its idle cyan — the picker is an overlay, not a ring state.</p>
+    <div class="kb">
+      <div class="strip">
+        <div class="arrow">▸</div>
+        <div class="sugg" style="visibility:hidden"><span>.</span></div>
+        <div class="pick">
+          <div class="util">⚙</div>
+          <div class="pill"><span class="dot gen" style="background:var(--c-general)"></span><span class="lbl">General</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-personal)"></span><span class="lbl">Personal</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-email)"></span><span class="lbl">Email</span></div>
+          <div class="float">Coding</div>
+        </div>
+        <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg></div>
+      </div>
+      <div class="rows">
+        <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+        <div class="rw" style="padding:0 14px"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="cap"><b>Armed / hot state + the drag hit rule (Q5/Q10-c).</b> The finger is over <b>Personal</b>: cyan armed border + 1dp lift + 1.03 scale — "this commits if I lift now." The dashed column shows the armed hit region: full 44dp band height, pill width + half-gap each side. The float never arms — it is a marker, not a target.</p>
+    <div class="kb">
+      <div class="strip">
+        <div class="arrow">▸</div>
+        <div class="sugg" style="visibility:hidden"><span>.</span></div>
+        <div class="pick">
+          <div class="util">⚙</div>
+          <div class="pill"><span class="dot gen" style="background:var(--c-general)"></span><span class="lbl">General</span></div>
+          <div class="pill armed" style="position:relative"><span class="dot" style="background:var(--c-personal)"></span><span class="lbl">Personal</span><span class="hit" style="left:-5px;right:-5px;top:-8px;bottom:-8px"></span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-email)"></span><span class="lbl">Email</span></div>
+          <div class="float">Coding</div>
+        </div>
+        <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg></div>
+      </div>
+      <div class="rows">
+        <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+        <div class="rw" style="padding:0 14px"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>2 · Portrait — overflow ("… +N") and label truncation</h2>
+<div class="flow">
+  <div class="panel">
+    <p class="cap"><b>Six presets, active = Coding (Q6-C / Q10-b).</b> Five alternatives, three fit at portrait width given real label lengths — Email, Personal, and <b>"Meeting transc…"</b> (118dp max-width, tail ellipsis; the identity dot carries the clipped identity). Terminal and General are hidden → the utility tile shows <b>"…"</b> with the cyan <b>+2</b> count chip (banner `.count` idiom, cyan family not amber). Sliding onto it and releasing opens Manage Presets.</p>
+    <div class="kb">
+      <div class="strip">
+        <div class="arrow">▸</div>
+        <div class="sugg" style="visibility:hidden"><span>.</span></div>
+        <div class="pick">
+          <div class="util">⋯ <span class="count">+2</span></div>
+          <div class="pill"><span class="dot" style="background:#a3c644"></span><span class="lbl">Meeting transcripts</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-personal)"></span><span class="lbl">Personal</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-email)"></span><span class="lbl">Email</span></div>
+          <div class="float">Coding</div>
+        </div>
+        <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg></div>
+      </div>
+      <div class="rows">
+        <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+        <div class="rw" style="padding:0 14px"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="cap"><b>Single-alternative edge state (Q10-a).</b> Two presets total, active = Coding: the "fan" degenerates honestly to a one-pill row — the lone <b>General</b> pill beside the float, plain <b>gear</b> (nothing hidden, §5.6 L194). Same layout grammar, no special case. (One preset total = the gesture is a no-op and nothing opens at all — pinned.)</p>
+    <div class="kb">
+      <div class="strip">
+        <div class="arrow">▸</div>
+        <div class="sugg" style="visibility:hidden"><span>.</span></div>
+        <div class="pick">
+          <div class="util">⚙</div>
+          <div class="pill"><span class="dot gen" style="background:var(--c-general)"></span><span class="lbl">General</span></div>
+          <div class="float">Coding</div>
+        </div>
+        <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg></div>
+      </div>
+      <div class="rows">
+        <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+        <div class="rw" style="padding:0 14px"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>3 · Wide strip — unfolded / split (Q9-B: width fills toward the cap)</h2>
+<div class="flow">
+  <div class="panel wide">
+    <p class="cap"><b>Unfolded, split ON, six presets, active = Coding.</b> The strip is never halved — the scrim spans the full width over both QWERTY halves; the single ring stays top-right. Extra width raises the visible count toward the ~4 cap: <b>Email, Personal, Meeting transcripts (untruncated — it fits here), Terminal</b> are visible; only General is hidden → "… +1". The cap is a true ceiling: a 7-preset roster would still show 4. The fan stays anchored at the ring; slack width is absorbed between the utility tile and the left edge.</p>
+    <div class="kb">
+      <div class="strip">
+        <div class="arrow">▸</div>
+        <div class="sugg" style="visibility:hidden"><span>.</span></div>
+        <div class="pick">
+          <div class="util">⋯ <span class="count">+1</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-terminal)"></span><span class="lbl">Terminal</span></div>
+          <div class="pill" style="max-width:160px"><span class="dot" style="background:#a3c644"></span><span class="lbl">Meeting transcripts</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-personal)"></span><span class="lbl">Personal</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-email)"></span><span class="lbl">Email</span></div>
+          <div class="float">Coding</div>
+        </div>
+        <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg></div>
+      </div>
+      <div class="rows" style="padding-top:10px">
+        <div class="split">
+          <div class="half">
+            <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+            <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+          </div>
+          <div class="gap"></div>
+          <div class="half">
+            <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+            <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>4 · Folded-landscape — wide strip, two-row terminal, live amber badge (Q3/Q7/Q9)</h2>
+<div class="flow">
+  <div class="panel wide">
+    <p class="cap"><b>The worst-case composition, rendered on purpose.</b> Folded-landscape is a wide strip too — the same Q9-B width behavior applies (4 visible + "… +1"), <i>not</i> a portrait fallback. The §7.4 banner is collapsed to its <span class="amb">amber badge</span> on the `▸` arrow: the picker scrim is a <b>sibling overlay above the strip's z-plane</b>, but the badge is drawn in `dispatchDraw` after strip children — the contract is that the scrim plate ends before the arrow column, so badge and arrow remain visible beside the open picker. <b>Release precedence at the `▸` end:</b> during an open picker gesture, a lift on the far-left element resolves to the picker's "…"/gear; the badge's first-tap priority applies only outside a picker gesture. The two-row terminal sits below, untouched — the picker never leaves the 44dp band (with the banner collapsed, the inert float also stays in-strip; headroom here is the scarcest, see frame 6).</p>
+    <div class="kb">
+      <div class="strip">
+        <div class="arrow">▸<span class="badge"></span></div>
+        <div class="sugg" style="visibility:hidden"><span>.</span></div>
+        <div class="pick">
+          <div class="util">⋯ <span class="count">+1</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-terminal)"></span><span class="lbl">Terminal</span></div>
+          <div class="pill" style="max-width:160px"><span class="dot" style="background:#a3c644"></span><span class="lbl">Meeting transcripts</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-personal)"></span><span class="lbl">Personal</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-email)"></span><span class="lbl">Email</span></div>
+          <div class="float">Coding</div>
+        </div>
+        <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg></div>
+      </div>
+      <div class="rows" style="padding-top:10px">
+        <div class="rw"><div class="k t" style="flex:1">Esc</div><div class="k t" style="flex:1">Ctrl</div><div class="k t" style="flex:1">Alt</div><div class="k t" style="flex:1">PgUp</div><div class="k t" style="flex:1">PgDn</div></div>
+        <div class="rw"><div class="k t" style="flex:1">Tab</div><div class="k t" style="flex:1">←</div><div class="k t" style="flex:1">↑</div><div class="k t" style="flex:1">↓</div><div class="k t" style="flex:1">→</div><div class="k t" style="flex:1">/</div></div>
+        <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>5 · Picker over a red IDLE_UNREACHABLE ring (Q11, ring-agnostic)</h2>
+<div class="flow">
+  <div class="panel">
+    <p class="cap"><b>Server unreachable, picker open anyway — presets are local (§5.6 L188).</b> The picker is <b>ring-state-agnostic</b>: float, pills, and scrim are pixel-identical to frame 1; the <span class="rd">red ring</span> simply shows through beneath the unchanged overlay. The mic icon keeps the active preset's tint (§6.2: the mic never defers to server-state color — the ring stroke is the sole state channel). Same composition over an amber-checking ring.</p>
+    <div class="kb">
+      <div class="strip">
+        <div class="arrow">▸</div>
+        <div class="sugg" style="visibility:hidden"><span>.</span></div>
+        <div class="pick">
+          <div class="util">⚙</div>
+          <div class="pill"><span class="dot gen" style="background:var(--c-general)"></span><span class="lbl">General</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-personal)"></span><span class="lbl">Personal</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-email)"></span><span class="lbl">Email</span></div>
+          <div class="float">Coding</div>
+        </div>
+        <div class="ring err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg></div>
+      </div>
+      <div class="rows">
+        <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+        <div class="rw" style="padding:0 14px"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="cap"><b>6 · §7.4 banner EXPANDED + picker open (Q3 banner-fallback A).</b> The expanded banner consumes the headroom above the strip — `visibleTopY` already subtracts `transcriptionBannerHeight`. The picker reads the <b>live, banner-aware</b> `visibleTopY` and the inert float stays fully <b>in-strip</b> (it is the in-strip head of the row in every frame of this contract, so nothing actually moves — the rule is that it may <i>never</i> cross the banner-reduced line, and no interactive element ever renders above it). The banner is untouched; this is a picker-behavior + z-order contract, not a banner change.</p>
+    <div class="kb">
+      <div class="banner">
+        <span class="bdot"></span>
+        <div class="btext"><div class="blabel">TRANSCRIPTION READY</div><div class="bprev">Remind me to check the container updates after…</div></div>
+        <div class="bbtn">Insert</div>
+      </div>
+      <div class="strip">
+        <div class="arrow">▸</div>
+        <div class="sugg" style="visibility:hidden"><span>.</span></div>
+        <div class="pick">
+          <div class="util">⚙</div>
+          <div class="pill"><span class="dot gen" style="background:var(--c-general)"></span><span class="lbl">General</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-personal)"></span><span class="lbl">Personal</span></div>
+          <div class="pill"><span class="dot" style="background:var(--c-email)"></span><span class="lbl">Email</span></div>
+          <div class="float">Coding</div>
+        </div>
+        <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg></div>
+      </div>
+      <div class="rows">
+        <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>7 · Live motion — one-shot open · switch · abort (Q1/Q5/Q10-d, §13.2 carve-out)</h2>
+<div class="flow">
+  <div class="panel wide">
+    <p class="cap"><b>The §13.2 compliance demonstration.</b> <b>Play open</b>: suggestions slide off-left while float → pills → utility tile stagger in right→left (~220ms total, 45ms per element) and then <b>settle dead static</b> — one-shot on gesture-begin, no loop, no ambient residue. This clears the wave ban by the press-glint carve-out. <b>Play switch → Personal</b>: armed highlight walks the row under the sliding finger; lift on Personal → the float's <b>label</b> updates and plays the pinned <b>cyan</b> scale-pulse (~150ms, §8.1) → retract (~200ms) → the <b>mic icon crossfades</b> Coding-blue → Personal-magenta (~200ms, one-shot) as the float drains back into the ring. <b>Play instant release</b> (Q10-d): the unfurl begins and honestly snaps back via the retract — no suppression, no flash.</p>
+    <div class="kb demo" id="demo">
+      <div class="strip">
+        <div class="arrow">▸</div>
+        <div class="sugg" id="dsugg"><span class="p">the</span><span>keyboard</span><span>that</span></div>
+        <div class="pick">
+          <div class="util" id="dutil">⚙</div>
+          <div class="pill p3"><span class="dot gen" style="background:var(--c-general)"></span><span class="lbl">General</span></div>
+          <div class="pill p2" id="pPersonal"><span class="dot" style="background:var(--c-personal)"></span><span class="lbl">Personal</span></div>
+          <div class="pill p1" id="pEmail"><span class="dot" style="background:var(--c-email)"></span><span class="lbl">Email</span></div>
+          <div class="float" id="dfloat">Coding</div>
+        </div>
+        <div class="ring"><svg id="dmic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#3b82f6"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4"/></svg></div>
+      </div>
+      <div class="rows">
+        <div class="rw"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+        <div class="rw" style="padding:0 14px"><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div><div class="k"></div></div>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button id="bOpen">Play open</button>
+      <button id="bSwitch" disabled>Play switch → Personal</button>
+      <button id="bAbort">Play instant release</button>
+      <button class="sec" id="bReset">Reset</button>
+    </div>
+    <div class="status" id="stat">Idle — active preset is Coding (blue mic).</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const demo=document.getElementById('demo'), stat=document.getElementById('stat');
+  const bOpen=document.getElementById('bOpen'), bSwitch=document.getElementById('bSwitch'),
+        bAbort=document.getElementById('bAbort'), bReset=document.getElementById('bReset');
+  const dfloat=document.getElementById('dfloat'), dmic=document.getElementById('dmic');
+  const pEmail=document.getElementById('pEmail'), pPersonal=document.getElementById('pPersonal');
+  let timers=[];
+  function later(fn,ms){timers.push(setTimeout(fn,ms));}
+  function clearAll(){timers.forEach(clearTimeout);timers=[];}
+  function reset(){
+    clearAll();
+    demo.classList.remove('open','closing');
+    pEmail.classList.remove('armed');pPersonal.classList.remove('armed');
+    dfloat.textContent='Coding';dfloat.classList.remove('pulse');
+    dmic.style.color='#3b82f6';
+    bOpen.disabled=false;bSwitch.disabled=true;bAbort.disabled=false;
+    stat.textContent='Idle — active preset is Coding (blue mic).';
+  }
+  bOpen.onclick=()=>{
+    clearAll();pEmail.classList.remove('armed');pPersonal.classList.remove('armed');
+    demo.classList.remove('closing');demo.classList.add('open');
+    bOpen.disabled=true;bSwitch.disabled=false;
+    stat.textContent='Open played once and settled — no loop, no ambient motion (§13.2 carve-out).';
+  };
+  bSwitch.onclick=()=>{
+    if(!demo.classList.contains('open'))return;
+    bSwitch.disabled=true;
+    stat.textContent='Finger sliding — armed highlight tracks the candidate…';
+    later(()=>{pEmail.classList.add('armed');},150);
+    later(()=>{pEmail.classList.remove('armed');pPersonal.classList.add('armed');},520);
+    later(()=>{
+      pPersonal.classList.remove('armed');
+      dfloat.textContent='Personal';
+      dfloat.classList.add('pulse');
+      stat.textContent='Lift → float label updates to Personal; pinned CYAN scale-pulse (~150ms, §8.1)…';
+    },980);
+    later(()=>{
+      dfloat.classList.remove('pulse');
+      demo.classList.remove('open');demo.classList.add('closing');
+      dmic.style.color='#e0569f';
+      stat.textContent='Retract (~200ms) — mic icon crossfades blue → magenta (one-shot). Personal is now active.';
+    },1320);
+    later(()=>{demo.classList.remove('closing');bOpen.disabled=false;
+      stat.textContent='Done — overlay gone, mic wears Personal magenta. Replay anything above.';},1650);
+  };
+  bAbort.onclick=()=>{
+    clearAll();reset();
+    demo.classList.add('open');bOpen.disabled=true;bAbort.disabled=true;
+    stat.textContent='Instant release — the unfurl begins…';
+    later(()=>{
+      demo.classList.remove('open');demo.classList.add('closing');
+      stat.textContent='…and honestly snaps back via the ~200ms retract. No preset committed (Q10-d).';
+    },140);
+    later(()=>{demo.classList.remove('closing');bOpen.disabled=false;bAbort.disabled=false;},520);
+  };
+  bReset.onclick=reset;
+})();
+</script>
+</body>
+</html>
